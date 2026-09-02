@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.6 (2026-09-02)
+
+### Bug Fixes
+
+- handle face loss during active check, correct REC indicator visibility, and distinguish interrupted sessions (#240)
+- restore brightness after liveness check (#236)
+
 ## 1.4.5 (2026-07-27)
 
 ### Bug Fixes
