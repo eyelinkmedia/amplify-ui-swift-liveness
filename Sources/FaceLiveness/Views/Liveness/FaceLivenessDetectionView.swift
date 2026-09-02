@@ -18,6 +18,11 @@ public struct FaceLivenessDetectorView: View {
     @Binding var isPresented: Bool
     @State var displayState: DisplayState = .awaitingChallengeType
     @State var displayingCameraPermissionsNeededAlert = false
+    @State private var brightnessState = BrightnessState()
+
+    private final class BrightnessState {
+        var original: CGFloat?
+    }
 
     let disableStartView: Bool
     let challengeOptions: ChallengeOptions
@@ -116,6 +121,14 @@ public struct FaceLivenessDetectorView: View {
     }
 
     public var body: some View {
+        content
+            .onDisappear {
+                restoreOriginalBrightness()
+            }
+    }
+
+    @ViewBuilder
+    private var content: some View {
         switch displayState {
         case .awaitingChallengeType:
             LoadingPageView()
@@ -206,9 +219,7 @@ public struct FaceLivenessDetectorView: View {
                 cameraPosition: cameraPosition
             )
             .onAppear {
-                DispatchQueue.main.async {
-                    UIScreen.main.brightness = 1.0
-                }
+                setBrightnessToMax()
             }
         case .displayingLiveness:
             _FaceLivenessDetectionView(
@@ -220,9 +231,7 @@ public struct FaceLivenessDetectorView: View {
                 }
             )
             .onAppear {
-                DispatchQueue.main.async {
-                    UIScreen.main.brightness = 1.0
-                }
+                setBrightnessToMax()
             }
             .onDisappear() {
                 viewModel.stopRecording()
@@ -244,10 +253,33 @@ public struct FaceLivenessDetectorView: View {
         }
     }
 
+    /// Overrides the device screen brightness to maximum for the liveness check,
+    /// capturing the user's original brightness once so it can be restored on exit.
+    private func setBrightnessToMax() {
+        DispatchQueue.main.async {
+            if brightnessState.original == nil {
+                brightnessState.original = UIScreen.main.brightness
+            }
+            UIScreen.main.brightness = 1.0
+        }
+    }
+
+    /// Restores the brightness captured in `setBrightnessToMax()`. Invoked when the
+    /// view leaves the hierarchy, so it runs on every exit path (success, cancel, error).
+    private func restoreOriginalBrightness() {
+        DispatchQueue.main.async {
+            guard let original = brightnessState.original else { return }
+            UIScreen.main.brightness = original
+            brightnessState.original = nil
+        }
+    }
+
     func mapError(_ livenessError: LivenessStateMachine.LivenessError) -> FaceLivenessDetectionError {
         switch livenessError {
-        case .userCancelled, .viewResignation:
+        case .userCancelled:
             return .userCancelled
+        case .viewResignation:
+            return .sessionInterrupted
         case .timedOut:
             return .faceInOvalMatchExceededTimeLimitError
         case .couldNotOpenStream, .socketClosed:
