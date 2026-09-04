@@ -10,13 +10,26 @@ import CoreImage
 import UIKit
 
 final class VideoChunker {
-    var state = State.pending
     let assetWriter: AVAssetWriter
     let assetWriterDelegate: AssetWriterDelegate
     let assetWriterInput: AVAssetWriterInput
     let pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor
-    var startTimeSeconds: Double?
-    var provideSingleFrame: ((UIImage) -> Void)?
+
+    // Three threads reach this object:
+    //   consume(_:)          the capture session's video data output queue
+    //   start()              main, via `drawOval`'s dispatched completion
+    //   finish(singleFrame:) a global queue, via the `asyncAfter` in
+    //                        `...ViewModel+VideoSegmentProcessor`
+    private let lock = NSLock()
+    private var state = State.pending
+    private var startTimeSeconds: Double?
+    private var provideSingleFrame: ((UIImage) -> Void)?
+
+    var currentState: State {
+        lock.lock()
+        defer { lock.unlock() }
+        return state
+    }
 
     init(
         assetWriter: AVAssetWriter,
@@ -33,6 +46,9 @@ final class VideoChunker {
     }
 
     func start() {
+        lock.lock()
+        defer { lock.unlock() }
+
         guard state == .pending else { return }
         assetWriter.startWriting()
         assetWriter.startSession(atSourceTime: .zero)
@@ -40,6 +56,9 @@ final class VideoChunker {
     }
 
     func finish(singleFrame: @escaping (UIImage) -> Void) {
+        lock.lock()
+        defer { lock.unlock() }
+
         self.provideSingleFrame = singleFrame
         state = .awaitingSingleFrame
 
@@ -50,12 +69,27 @@ final class VideoChunker {
     }
 
     func consume(_ buffer: CMSampleBuffer) {
-        if state == .awaitingSingleFrame {
-            guard let imageBuffer = buffer.imageBuffer else { return }
-            let singleFrame = singleFrame(from: imageBuffer)
-            provideSingleFrame?(singleFrame)
-            state = .complete
+        if let imageBuffer = buffer.imageBuffer,
+           let provideSingleFrame = completeAwaitingSingleFrame() {
+            provideSingleFrame(singleFrame(from: imageBuffer))
+            return
         }
+
+        append(buffer)
+    }
+
+    private func completeAwaitingSingleFrame() -> ((UIImage) -> Void)? {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard state == .awaitingSingleFrame else { return nil }
+        state = .complete
+        return provideSingleFrame
+    }
+
+    private func append(_ buffer: CMSampleBuffer) {
+        lock.lock()
+        defer { lock.unlock() }
 
         guard state == .writing else { return }
 
