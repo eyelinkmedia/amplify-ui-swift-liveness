@@ -75,7 +75,9 @@ final class _LivenessViewController: UIViewController {
         let height = width / 3 * 4
         let cameraFrame = CGRect(x: x, y: y, width: width, height: height)
 
-        guard let avLayer = viewModel.configureCamera(withinFrame: cameraFrame) else {
+        // The preview fills the whole view (aspect-fill), while face detection and the
+        // oval stay in the coordinates of the 3:4 `cameraFrame`.
+        guard let avLayer = viewModel.configureCamera(withinFrame: view.bounds) else {
             DispatchQueue.main.async { [weak self] in
                 self?.viewModel.livenessState
                     .unrecoverableStateEncountered(.missingVideoPermission)
@@ -85,9 +87,7 @@ final class _LivenessViewController: UIViewController {
 
         avLayer.position = view.center
         self.previewLayer = avLayer
-        if let previewLayer = self.previewLayer {
-            viewModel.cameraViewRect = previewLayer.frame
-        }
+        viewModel.cameraViewRect = cameraFrame
 
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
@@ -121,6 +121,8 @@ extension _LivenessViewController: FaceLivenessViewControllerPresenter {
             guard let previewLayer = self.previewLayer else { return }
             let imageView = UIImageView(image: uiImage)
             imageView.frame = previewLayer.frame
+            imageView.contentMode = .scaleAspectFill
+            imageView.clipsToBounds = true
             self.view.addSubview(imageView)
             (previewLayer as? AVCaptureVideoPreviewLayer)?.session = nil
             previewLayer.removeFromSuperlayer()
@@ -168,7 +170,7 @@ extension _LivenessViewController: FaceLivenessViewControllerPresenter {
 
             let ovalView = OvalView(
                 frame: previewLayer.frame,
-                ovalFrame: ovalRect
+                ovalFrame: self.previewRect(fromCameraRect: ovalRect, previewSize: previewLayer.bounds.size)
             )
             self.ovalView = ovalView
             ovalView.center = previewLayer.position
@@ -184,5 +186,26 @@ extension _LivenessViewController: FaceLivenessViewControllerPresenter {
     
     func completeNoLightCheck() {
         self.viewModel.completeNoLightCheck()
+    }
+
+    /// Maps a rect from the 3:4 camera frame (`viewModel.cameraViewRect`) onto the
+    /// aspect-filled preview, which scales the frame up and crops whichever sides overflow.
+    private func previewRect(fromCameraRect rect: CGRect, previewSize: CGSize) -> CGRect {
+        let cameraSize = viewModel.cameraViewRect.size
+        guard cameraSize.width > 0, cameraSize.height > 0 else { return rect }
+
+        let scale = max(
+            previewSize.width / cameraSize.width,
+            previewSize.height / cameraSize.height
+        )
+        let originX = (previewSize.width - cameraSize.width * scale) / 2
+        let originY = (previewSize.height - cameraSize.height * scale) / 2
+
+        return CGRect(
+            x: originX + rect.minX * scale,
+            y: originY + rect.minY * scale,
+            width: rect.width * scale,
+            height: rect.height * scale
+        )
     }
 }

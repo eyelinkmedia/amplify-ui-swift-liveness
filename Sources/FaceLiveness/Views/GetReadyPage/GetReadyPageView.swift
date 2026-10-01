@@ -27,9 +27,11 @@ struct GetReadyPageView: View {
     }
 
     var body: some View {
-        VStack {
-            ZStack {
-                CameraPreviewView(cameraPosition: cameraPosition)
+        // The preview sits behind the whole page rather than above the button, so it
+        // fills the screen exactly like the recording preview that follows.
+        ZStack {
+            CameraPreviewView(cameraPosition: cameraPosition)
+            VStack {
                 VStack {
                     WarningBox(
                         titleText: LocalizedStrings.get_ready_photosensitivity_title,
@@ -43,8 +45,8 @@ struct GetReadyPageView: View {
                         .multilineTextAlignment(.center)
                     Spacer()
                 }.padding()
+                beginCheckButton
             }
-            beginCheckButton
         }
     }
 

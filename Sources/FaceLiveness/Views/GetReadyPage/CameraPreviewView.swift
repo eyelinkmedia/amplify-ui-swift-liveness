@@ -8,10 +8,15 @@
 import SwiftUI
 
 struct CameraPreviewView: View {
-    private static let previewWidthRatio = 0.6
-    private static let previewHeightRatio = 0.55
-    private static let previewXPositionRatio = 0.5
-    private static let previewYPositionRatio = 0.6
+    // The oval as fractions of the camera frame, rather than of the screen, so it covers
+    // the same part of the frame on every iPhone. The size reproduces the original layout
+    // (60% x 55% of the area above the begin button) on a 393x852pt screen, which keeps the
+    // distance users start the check from. It is centered like the oval the server sends.
+    private static let ovalWidthRatio = 0.42
+    private static let ovalHeightRatio = 0.51
+    private static let ovalCenterXRatio = 0.5
+    private static let ovalCenterYRatio = 0.5
+    private static let cameraFrameSize = CGSize(width: 480, height: 640)
     
     @StateObject var model: CameraPreviewViewModel
     
@@ -20,28 +25,45 @@ struct CameraPreviewView: View {
     }
     
     var body: some View {
-        ZStack {
-            ImageFrameView(image: model.currentImageFrame)
-                .edgesIgnoringSafeArea(.all)
-                .mask(
-                    GeometryReader { geometry in
+        GeometryReader { geometry in
+            let ovalFrame = Self.ovalFrame(previewSize: geometry.size)
+            ZStack {
+                ImageFrameView(image: model.currentImageFrame)
+                    .mask(
                         Ellipse()
-                            .frame(width: geometry.size.width*Self.previewWidthRatio,
-                                   height: geometry.size.height*Self.previewHeightRatio)
-                            .position(x: geometry.size.width*Self.previewXPositionRatio,
-                                      y: geometry.size.height*Self.previewYPositionRatio)
-                    })
-            GeometryReader { geometry in
+                            .frame(width: ovalFrame.width, height: ovalFrame.height)
+                            .position(x: ovalFrame.midX, y: ovalFrame.midY)
+                    )
                 Ellipse()
                     .stroke(Color.livenessPreviewBorder, style: StrokeStyle(lineWidth: 3))
-                    .frame(width: geometry.size.width*Self.previewWidthRatio,
-                           height: geometry.size.height*Self.previewHeightRatio)
-                    .position(x: geometry.size.width*Self.previewXPositionRatio,
-                              y: geometry.size.height*Self.previewYPositionRatio)
+                    .frame(width: ovalFrame.width, height: ovalFrame.height)
+                    .position(x: ovalFrame.midX, y: ovalFrame.midY)
             }
-        }.onDisappear {
+        }
+        .edgesIgnoringSafeArea(.all)
+        .onDisappear {
             model.stopSession()
         }
+    }
+
+    /// Maps the oval from the camera frame onto the preview, which aspect-fills the frame
+    /// (see `ImageFrameView`) and crops whichever sides overflow.
+    private static func ovalFrame(previewSize: CGSize) -> CGRect {
+        let scale = max(
+            previewSize.width / cameraFrameSize.width,
+            previewSize.height / cameraFrameSize.height
+        )
+        let originX = (previewSize.width - cameraFrameSize.width * scale) / 2
+        let originY = (previewSize.height - cameraFrameSize.height * scale) / 2
+        let width = cameraFrameSize.width * ovalWidthRatio * scale
+        let height = cameraFrameSize.height * ovalHeightRatio * scale
+
+        return CGRect(
+            x: originX + cameraFrameSize.width * ovalCenterXRatio * scale - width / 2,
+            y: originY + cameraFrameSize.height * ovalCenterYRatio * scale - height / 2,
+            width: width,
+            height: height
+        )
     }
 }
 
