@@ -28,7 +28,7 @@ struct InstructionView: View {
                     .frame(height: 32)
                     .accessibilityHidden(true)
             }
-            Text(text)
+            Text(title)
                 .foregroundColor(.white)
                 .font(titleFont)
                 .multilineTextAlignment(.center)
@@ -45,6 +45,10 @@ struct InstructionView: View {
         case .verifying:
             return appearance.verifyingIcon
         }
+    }
+
+    private var title: String {
+        appearance.isTitleLowercased ? text.lowercased() : text
     }
 
     private var titleFont: Font {

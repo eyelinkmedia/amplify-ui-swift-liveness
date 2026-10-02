@@ -11,6 +11,9 @@ public struct LivenessInstructionAppearance: Sendable {
     /// 28pt bold system font when nil
     public let titleFont: UIFont?
 
+    /// Shows the title in lowercase. When false it is shown as written in the strings.
+    public let isTitleLowercased: Bool
+
     /// Shown while the user positions their face, before the oval appears. No icon when nil.
     public let centerYourFaceIcon: UIImage?
 
@@ -22,11 +25,13 @@ public struct LivenessInstructionAppearance: Sendable {
 
     public init(
         titleFont: UIFont? = nil,
+        isTitleLowercased: Bool = false,
         centerYourFaceIcon: UIImage? = nil,
         moveCloserIcon: UIImage? = nil,
         verifyingIcon: UIImage? = nil
     ) {
         self.titleFont = titleFont
+        self.isTitleLowercased = isTitleLowercased
         self.centerYourFaceIcon = centerYourFaceIcon
         self.moveCloserIcon = moveCloserIcon
         self.verifyingIcon = verifyingIcon
