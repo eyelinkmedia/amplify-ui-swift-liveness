@@ -21,6 +21,21 @@ enum OvalGeometry {
     private static let startOvalCenterYRatio = 0.5
     private static let cameraFrameSize = CGSize(width: 480, height: 640)
 
+    // The oval the server sends is drawn slightly smaller so that it clears the close
+    // button. Only the drawing changes: matching still compares the face with the server's
+    // oval, and a face that fills the drawn one is well within its match tolerance.
+    private static let challengeOvalScale = 0.95
+
+    /// The oval the server sends, `rect` in a camera frame of `cameraSize`, as drawn on a
+    /// preview of `previewSize`
+    static func challengeOvalFrame(fromCameraRect rect: CGRect, cameraSize: CGSize, previewSize: CGSize) -> CGRect {
+        let frame = previewRect(fromCameraRect: rect, cameraSize: cameraSize, previewSize: previewSize)
+        return frame.insetBy(
+            dx: frame.width * (1 - challengeOvalScale) / 2,
+            dy: frame.height * (1 - challengeOvalScale) / 2
+        )
+    }
+
     /// The oval shown before the check starts, in the coordinates of a preview of `previewSize`
     static func startOvalFrame(previewSize: CGSize) -> CGRect {
         let width = cameraFrameSize.width * startOvalWidthRatio

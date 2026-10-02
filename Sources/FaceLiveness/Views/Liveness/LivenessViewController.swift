@@ -170,7 +170,7 @@ extension _LivenessViewController: FaceLivenessViewControllerPresenter {
             guard let self else { return }
             guard let previewLayer = self.previewLayer else { return }
 
-            let ovalFrame = OvalGeometry.previewRect(
+            let ovalFrame = OvalGeometry.challengeOvalFrame(
                 fromCameraRect: ovalRect,
                 cameraSize: self.viewModel.cameraViewRect.size,
                 previewSize: previewLayer.bounds.size
