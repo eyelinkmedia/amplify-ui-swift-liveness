@@ -93,6 +93,8 @@ final class _LivenessViewController: UIViewController {
             guard let self else { return }
             self.view.layer.insertSublayer(avLayer, at: 0)
             self.view.layoutIfNeeded()
+            // Continues the oval of the get-ready screen until the challenge oval replaces it
+            self.addOvalView(ovalFrame: OvalGeometry.startOvalFrame(previewSize: avLayer.bounds.size))
 
             self.viewModel.startSession()
         }
@@ -168,16 +170,16 @@ extension _LivenessViewController: FaceLivenessViewControllerPresenter {
             guard let self else { return }
             guard let previewLayer = self.previewLayer else { return }
 
-            let ovalView = OvalView(
-                frame: previewLayer.frame,
-                ovalFrame: self.previewRect(fromCameraRect: ovalRect, previewSize: previewLayer.bounds.size)
+            let ovalFrame = OvalGeometry.previewRect(
+                fromCameraRect: ovalRect,
+                cameraSize: self.viewModel.cameraViewRect.size,
+                previewSize: previewLayer.bounds.size
             )
-            self.ovalView = ovalView
-            ovalView.center = previewLayer.position
-            self.view.insertSubview(
-                ovalView,
-                belowSubview: self.freshnessView
-            )
+            if let ovalView = self.ovalView {
+                ovalView.setOvalFrame(ovalFrame, animated: true)
+            } else {
+                self.addOvalView(ovalFrame: ovalFrame)
+            }
 
             self.ovalRect = ovalRect
             self.ovalExists = true
@@ -188,24 +190,18 @@ extension _LivenessViewController: FaceLivenessViewControllerPresenter {
         self.viewModel.completeNoLightCheck()
     }
 
-    /// Maps a rect from the 3:4 camera frame (`viewModel.cameraViewRect`) onto the
-    /// aspect-filled preview, which scales the frame up and crops whichever sides overflow.
-    private func previewRect(fromCameraRect rect: CGRect, previewSize: CGSize) -> CGRect {
-        let cameraSize = viewModel.cameraViewRect.size
-        guard cameraSize.width > 0, cameraSize.height > 0 else { return rect }
+    private func addOvalView(ovalFrame: CGRect) {
+        guard let previewLayer = self.previewLayer else { return }
 
-        let scale = max(
-            previewSize.width / cameraSize.width,
-            previewSize.height / cameraSize.height
+        let ovalView = OvalView(
+            frame: previewLayer.frame,
+            ovalFrame: ovalFrame
         )
-        let originX = (previewSize.width - cameraSize.width * scale) / 2
-        let originY = (previewSize.height - cameraSize.height * scale) / 2
-
-        return CGRect(
-            x: originX + rect.minX * scale,
-            y: originY + rect.minY * scale,
-            width: rect.width * scale,
-            height: rect.height * scale
+        self.ovalView = ovalView
+        ovalView.center = previewLayer.position
+        self.view.insertSubview(
+            ovalView,
+            belowSubview: self.freshnessView
         )
     }
 }
