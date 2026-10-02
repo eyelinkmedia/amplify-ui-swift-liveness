@@ -6,26 +6,22 @@
 //
 
 import SwiftUI
-@_spi(PredictionsFaceLiveness) import AWSPredictionsPlugin
 
 struct GetReadyPageView: View {
     let beginCheckButtonDisabled: Bool
     let onBegin: () -> Void
     let onClose: () -> Void
-    let challenge: Challenge
     let cameraPosition: LivenessCamera
-    
+
     init(
         onBegin: @escaping () -> Void,
         onClose: @escaping () -> Void,
         beginCheckButtonDisabled: Bool = false,
-        challenge: Challenge,
         cameraPosition: LivenessCamera
     ) {
         self.onBegin = onBegin
         self.onClose = onClose
         self.beginCheckButtonDisabled = beginCheckButtonDisabled
-        self.challenge = challenge
         self.cameraPosition = cameraPosition
     }
 
@@ -40,16 +36,7 @@ struct GetReadyPageView: View {
                     text: LocalizedStrings.preview_center_your_face_text
                 )
                 .padding(.top, 22)
-                VStack {
-                    WarningBox(
-                        titleText: LocalizedStrings.get_ready_photosensitivity_title,
-                        bodyText: LocalizedStrings.get_ready_photosensitivity_description,
-                        popoverContent: { photosensitivityWarningPopoverContent }
-                    )
-                    .accessibilityElement(children: .combine)
-                    .opacity(challenge == Challenge.faceMovementAndLightChallenge("2.0.0") ? 1.0 : 0.0)
-                    Spacer()
-                }.padding()
+                Spacer()
                 beginCheckButton
             }
         }
@@ -73,18 +60,6 @@ struct GetReadyPageView: View {
         .padding([.leading, .trailing], 24)
         .padding(.bottom, 14)
     }
-
-    private var photosensitivityWarningPopoverContent: some View {
-        VStack {
-            Text(LocalizedStrings.get_ready_photosensitivity_dialog_title)
-                .font(.system(size: 20, weight: .medium))
-                .frame(alignment: .center)
-                .padding()
-            Text(LocalizedStrings.get_ready_photosensitivity_dialog_description)
-                .padding()
-            Spacer()
-        }
-    }
 }
 
 struct GetReadyPageView_Previews: PreviewProvider {
@@ -92,7 +67,6 @@ struct GetReadyPageView_Previews: PreviewProvider {
         GetReadyPageView(
             onBegin: {},
             onClose: {},
-            challenge: .faceMovementAndLightChallenge("2.0.0"),
             cameraPosition: .front)
     }
 }

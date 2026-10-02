@@ -38,20 +38,11 @@ struct InstructionContainerView: View {
                 )
             }
 
-        case .awaitingFaceInOvalMatch(let reason, let percentage):
+        case .awaitingFaceInOvalMatch(let reason, _):
             InstructionView(
                 icon: .moveCloser,
                 text: .init(reason.localizedValue)
             )
-
-            ProgressBarView(
-                emptyColor: .white,
-                borderColor: .hex("#AEB3B7"),
-                fillColor: .livenessPrimaryBackground,
-                indicatorColor: .livenessPrimaryBackground,
-                percentage: percentage
-            )
-            .frame(width: 200, height: 30)
         case .recording(ovalDisplayed: true):
             InstructionView(
                 icon: .moveCloser,
@@ -63,15 +54,6 @@ struct InstructionContainerView: View {
                     argument: LocalizedStrings.challenge_instruction_move_face_closer
                 )
             }
-
-            ProgressBarView(
-                emptyColor: .white,
-                borderColor: .hex("#AEB3B7"),
-                fillColor: .livenessPrimaryBackground,
-                indicatorColor: .livenessPrimaryBackground,
-                percentage: 0.2
-            )
-            .frame(width: 200, height: 30)
         case .pendingFacePreparedConfirmation(let reason):
             InstructionView(
                 icon: .centerYourFace,

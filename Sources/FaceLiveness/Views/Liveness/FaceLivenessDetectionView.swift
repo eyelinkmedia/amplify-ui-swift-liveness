@@ -213,7 +213,7 @@ public struct FaceLivenessDetectorView: View {
                         self.displayState = newState
                     }
                 }
-        case .displayingGetReadyView(let challenge, let cameraPosition):
+        case .displayingGetReadyView(_, let cameraPosition):
             GetReadyPageView(
                 onBegin: {
                     guard displayState != .displayingLiveness else { return }
@@ -221,7 +221,6 @@ public struct FaceLivenessDetectorView: View {
                 },
                 onClose: viewModel.closeButtonAction,
                 beginCheckButtonDisabled: false,
-                challenge: challenge,
                 cameraPosition: cameraPosition
             )
             .onAppear {
