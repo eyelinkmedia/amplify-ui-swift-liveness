@@ -11,16 +11,19 @@ import SwiftUI
 struct GetReadyPageView: View {
     let beginCheckButtonDisabled: Bool
     let onBegin: () -> Void
+    let onClose: () -> Void
     let challenge: Challenge
     let cameraPosition: LivenessCamera
     
     init(
         onBegin: @escaping () -> Void,
+        onClose: @escaping () -> Void,
         beginCheckButtonDisabled: Bool = false,
         challenge: Challenge,
         cameraPosition: LivenessCamera
     ) {
         self.onBegin = onBegin
+        self.onClose = onClose
         self.beginCheckButtonDisabled = beginCheckButtonDisabled
         self.challenge = challenge
         self.cameraPosition = cameraPosition
@@ -48,6 +51,7 @@ struct GetReadyPageView: View {
                 beginCheckButton
             }
         }
+        .closeButtonOverlay(action: onClose)
     }
 
     private var beginCheckButton: some View {
@@ -84,6 +88,7 @@ struct GetReadyPageView_Previews: PreviewProvider {
     static var previews: some View {
         GetReadyPageView(
             onBegin: {},
+            onClose: {},
             challenge: .faceMovementAndLightChallenge("2.0.0"),
             cameraPosition: .front)
     }

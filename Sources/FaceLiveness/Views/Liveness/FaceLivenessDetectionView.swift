@@ -214,12 +214,24 @@ public struct FaceLivenessDetectorView: View {
                     guard displayState != .displayingLiveness else { return }
                     displayState = .displayingLiveness
                 },
+                onClose: viewModel.closeButtonAction,
                 beginCheckButtonDisabled: false,
                 challenge: challenge,
                 cameraPosition: cameraPosition
             )
             .onAppear {
                 setBrightnessToMax()
+            }
+            .onReceive(viewModel.$livenessState) { output in
+                switch output.state {
+                case .encounteredUnrecoverableError(let error):
+                    let closeCode = error.webSocketCloseCode ?? .normalClosure
+                    viewModel.livenessService?.closeSocket(with: closeCode)
+                    isPresented = false
+                    onCompletion(.failure(mapError(error)))
+                default:
+                    break
+                }
             }
         case .displayingLiveness:
             _FaceLivenessDetectionView(

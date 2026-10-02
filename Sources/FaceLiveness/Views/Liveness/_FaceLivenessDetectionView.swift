@@ -38,11 +38,10 @@ struct _FaceLivenessDetectionView<VideoView: View>: View {
                         }
 
                         Spacer()
-
-                        CloseButton(
-                            action: viewModel.closeButtonAction
-                        )
                     }
+                    // Keeps the height the close button gave this row before it moved to
+                    // the top of the screen, so the instruction below stays where it was
+                    .frame(minHeight: 44, alignment: .top)
                     .padding()
 
                     InstructionContainerView(
@@ -57,5 +56,6 @@ struct _FaceLivenessDetectionView<VideoView: View>: View {
             }
         }
         .edgesIgnoringSafeArea(.all)
+        .closeButtonOverlay(action: viewModel.closeButtonAction)
     }
 }

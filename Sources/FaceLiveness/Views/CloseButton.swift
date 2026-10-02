@@ -26,6 +26,18 @@ struct CloseButton: View {
     }
 }
 
+extension View {
+    /// Shows the close button in the top trailing corner of the safe area, where every
+    /// screen of the check places it.
+    func closeButtonOverlay(action: @escaping () -> Void) -> some View {
+        _overlay(alignment: .topTrailing) {
+            CloseButton(action: action)
+                .padding(.top, 13)
+                .padding(.trailing, 20)
+        }
+    }
+}
+
 struct CloseButton_Previews: PreviewProvider {
     static var previews: some View {
         ZStack {
