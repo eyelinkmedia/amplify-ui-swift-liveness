@@ -29,13 +29,14 @@ struct CameraPreviewView: View {
             let ovalFrame = Self.ovalFrame(previewSize: geometry.size)
             ZStack {
                 ImageFrameView(image: model.currentImageFrame)
-                    .mask(
-                        Ellipse()
-                            .frame(width: ovalFrame.width, height: ovalFrame.height)
-                            .position(x: ovalFrame.midX, y: ovalFrame.midY)
-                    )
+                // Dims the video around the oval, like `OvalView` does while recording
+                Path { path in
+                    path.addRect(CGRect(origin: .zero, size: geometry.size))
+                    path.addEllipse(in: ovalFrame)
+                }
+                .fill(Color.black.opacity(0.384), style: FillStyle(eoFill: true))
                 Ellipse()
-                    .stroke(Color.livenessPreviewBorder, style: StrokeStyle(lineWidth: 3))
+                    .stroke(Color.white, style: StrokeStyle(lineWidth: 4))
                     .frame(width: ovalFrame.width, height: ovalFrame.height)
                     .position(x: ovalFrame.midX, y: ovalFrame.midY)
             }
