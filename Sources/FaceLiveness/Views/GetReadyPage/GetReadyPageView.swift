@@ -59,16 +59,17 @@ struct GetReadyPageView: View {
             action: onBegin,
             label: {
                 Text(LocalizedStrings.get_ready_begin_check)
-                    .foregroundColor(.livenessPrimaryLabel)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
             }
         )
         .disabled(beginCheckButtonDisabled)
-        .frame(height: 52)
-        ._background { Color.livenessPrimaryBackground }
-        .cornerRadius(14)
-        .padding([.leading, .trailing])
-        .padding(.bottom, 16)
+        .frame(height: 48)
+        ._background { Color.white }
+        .clipShape(Capsule())
+        .padding([.leading, .trailing], 24)
+        .padding(.bottom, 14)
     }
 
     private var photosensitivityWarningPopoverContent: some View {
