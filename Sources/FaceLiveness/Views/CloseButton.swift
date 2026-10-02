@@ -14,15 +14,25 @@ struct CloseButton: View {
         Button(
             action: action,
             label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.livenessLabel)
-                    .frame(width: 44, height: 44)
-                    .background(Color.livenessBackground)
-                    .clipShape(Circle())
-                    .accessibilityLabel(Text(LocalizedStrings.close_button_a11y))
+                if #available(iOS 26.0, *) {
+                    icon
+                        .foregroundColor(.white)
+                        .glassEffect(.regular.interactive(), in: Circle())
+                } else {
+                    icon
+                        .foregroundColor(.livenessLabel)
+                        .background(Color.livenessBackground)
+                        .clipShape(Circle())
+                }
             }
         )
+    }
+
+    private var icon: some View {
+        Image(systemName: "xmark")
+            .font(.system(size: 18, weight: .bold))
+            .frame(width: 44, height: 44)
+            .accessibilityLabel(Text(LocalizedStrings.close_button_a11y))
     }
 }
 
