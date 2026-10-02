@@ -35,6 +35,11 @@ struct GetReadyPageView: View {
         ZStack {
             CameraPreviewView(cameraPosition: cameraPosition)
             VStack {
+                InstructionView(
+                    icon: .centerYourFace,
+                    text: LocalizedStrings.preview_center_your_face_text
+                )
+                .padding(.top, 22)
                 VStack {
                     WarningBox(
                         titleText: LocalizedStrings.get_ready_photosensitivity_title,
@@ -43,9 +48,6 @@ struct GetReadyPageView: View {
                     )
                     .accessibilityElement(children: .combine)
                     .opacity(challenge == Challenge.faceMovementAndLightChallenge("2.0.0") ? 1.0 : 0.0)
-                    Text(LocalizedStrings.preview_center_your_face_text)
-                        .font(.title)
-                        .multilineTextAlignment(.center)
                     Spacer()
                 }.padding()
                 beginCheckButton

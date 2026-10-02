@@ -39,14 +39,7 @@ struct _FaceLivenessDetectionView<VideoView: View>: View {
 
                         Spacer()
                     }
-                    // Keeps the height the close button gave this row before it moved to
-                    // the top of the screen, so the instruction below stays where it was
-                    .frame(minHeight: 44, alignment: .top)
                     .padding()
-
-                    InstructionContainerView(
-                        viewModel: viewModel
-                    )
 
                     Spacer()
                 }
@@ -56,6 +49,14 @@ struct _FaceLivenessDetectionView<VideoView: View>: View {
             }
         }
         .edgesIgnoringSafeArea(.all)
+        ._overlay(alignment: .top) {
+            VStack(spacing: 12) {
+                InstructionContainerView(
+                    viewModel: viewModel
+                )
+            }
+            .padding(.top, 22)
+        }
         .closeButtonOverlay(action: viewModel.closeButtonAction)
     }
 }

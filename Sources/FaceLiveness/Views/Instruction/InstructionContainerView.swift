@@ -16,10 +16,8 @@ struct InstructionContainerView: View {
         switch viewModel.livenessState.state {
         case .displayingFreshness:
             InstructionView(
-                text: LocalizedStrings.challenge_instruction_hold_still,
-                backgroundColor: .livenessPrimaryBackground,
-                textColor: .livenessPrimaryLabel,
-                font: .title
+                icon: .moveCloser,
+                text: LocalizedStrings.challenge_instruction_hold_still
             )
             .onAppear {
                 UIAccessibility.post(
@@ -30,10 +28,8 @@ struct InstructionContainerView: View {
 
         case .awaitingFaceInOvalMatch(.faceTooClose, _):
             InstructionView(
-                text: LocalizedStrings.challenge_instruction_move_face_back,
-                backgroundColor: .livenessErrorBackground,
-                textColor: .livenessErrorLabel,
-                font: .title
+                icon: .moveCloser,
+                text: LocalizedStrings.challenge_instruction_move_face_back
             )
             .onAppear {
                 UIAccessibility.post(
@@ -44,10 +40,8 @@ struct InstructionContainerView: View {
 
         case .awaitingFaceInOvalMatch(let reason, let percentage):
             InstructionView(
-                text: .init(reason.localizedValue),
-                backgroundColor: .livenessPrimaryBackground,
-                textColor: .livenessPrimaryLabel,
-                font: .title
+                icon: .moveCloser,
+                text: .init(reason.localizedValue)
             )
 
             ProgressBarView(
@@ -60,10 +54,8 @@ struct InstructionContainerView: View {
             .frame(width: 200, height: 30)
         case .recording(ovalDisplayed: true):
             InstructionView(
-                text: LocalizedStrings.challenge_instruction_move_face_closer,
-                backgroundColor: .livenessPrimaryBackground,
-                textColor: .livenessPrimaryLabel,
-                font: .title
+                icon: .moveCloser,
+                text: LocalizedStrings.challenge_instruction_move_face_closer
             )
             .onAppear {
                 UIAccessibility.post(
@@ -82,15 +74,13 @@ struct InstructionContainerView: View {
             .frame(width: 200, height: 30)
         case .pendingFacePreparedConfirmation(let reason):
             InstructionView(
-                text: .init(reason.localizedValue),
-                backgroundColor: .livenessPrimaryBackground,
-                textColor: .livenessPrimaryLabel,
-                font: .title
+                icon: .centerYourFace,
+                text: .init(reason.localizedValue)
             )
         case .completedDisplayingFreshness:
             InstructionView(
-                text: LocalizedStrings.challenge_verifying,
-                backgroundColor: .livenessBackground
+                icon: .verifying,
+                text: LocalizedStrings.challenge_verifying
             )
             .onAppear {
                 UIAccessibility.post(
@@ -100,8 +90,8 @@ struct InstructionContainerView: View {
             }
         case .completedNoLightCheck:
             InstructionView(
-                text: LocalizedStrings.challenge_verifying,
-                backgroundColor: .livenessBackground
+                icon: .verifying,
+                text: LocalizedStrings.challenge_verifying
             )
             .onAppear {
                 UIAccessibility.post(
@@ -113,10 +103,8 @@ struct InstructionContainerView: View {
             if let challenge = viewModel.challengeReceived,
                case .faceMovementAndLightChallenge = challenge {
                 InstructionView(
-                    text: LocalizedStrings.challenge_instruction_hold_still,
-                    backgroundColor: .livenessPrimaryBackground,
-                    textColor: .livenessPrimaryLabel,
-                    font: .title
+                    icon: .moveCloser,
+                    text: LocalizedStrings.challenge_instruction_hold_still
                 )
             } else {
                 EmptyView()
