@@ -51,12 +51,14 @@ struct GetReadyPageView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
+                    // Inside the label, so that the whole capsule is tappable rather than
+                    // just the text
+                    .frame(height: 48)
+                    ._background { Color.white }
+                    .clipShape(Capsule())
             }
         )
         .disabled(beginCheckButtonDisabled)
-        .frame(height: 48)
-        ._background { Color.white }
-        .clipShape(Capsule())
         .padding([.leading, .trailing], 24)
         .padding(.bottom, 14)
     }
