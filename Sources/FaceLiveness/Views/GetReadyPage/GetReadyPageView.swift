@@ -44,23 +44,11 @@ struct GetReadyPageView: View {
     }
 
     private var beginCheckButton: some View {
-        Button(
-            action: onBegin,
-            label: {
-                Text(LocalizedStrings.get_ready_begin_check)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.black)
-                    .frame(maxWidth: .infinity)
-                    // Inside the label, so that the whole capsule is tappable rather than
-                    // just the text
-                    .frame(height: 48)
-                    ._background { Color.white }
-                    .clipShape(Capsule())
-            }
+        PrimaryButton(
+            title: LocalizedStrings.get_ready_begin_check,
+            action: onBegin
         )
         .disabled(beginCheckButtonDisabled)
-        .padding([.leading, .trailing], 24)
-        .padding(.bottom, 14)
     }
 }
 
