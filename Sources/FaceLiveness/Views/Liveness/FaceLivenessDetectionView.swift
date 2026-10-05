@@ -190,10 +190,14 @@ public struct FaceLivenessDetectorView: View {
                 }
             }
         case .awaitingCameraPermission(let challenge):
-            CameraPermissionView(displayingCameraPermissionsNeededAlert: $displayingCameraPermissionsNeededAlert)
-                .onAppear {
-                    checkCameraPermission(for: challenge)
-                }
+            CameraPermissionView(
+                displayingCameraPermissionsNeededAlert: $displayingCameraPermissionsNeededAlert,
+                onClose: viewModel.closeButtonAction
+            )
+            .onAppear {
+                checkCameraPermission(for: challenge)
+            }
+            .onReceive(viewModel.$livenessState, perform: completeOnUnrecoverableError)
         case .awaitingLivenessSession(let challenge):
             Color.clear
                 .onAppear {
@@ -226,17 +230,7 @@ public struct FaceLivenessDetectorView: View {
             .onAppear {
                 setBrightnessToMax()
             }
-            .onReceive(viewModel.$livenessState) { output in
-                switch output.state {
-                case .encounteredUnrecoverableError(let error):
-                    let closeCode = error.webSocketCloseCode ?? .normalClosure
-                    viewModel.livenessService?.closeSocket(with: closeCode)
-                    isPresented = false
-                    onCompletion(.failure(mapError(error)))
-                default:
-                    break
-                }
-            }
+            .onReceive(viewModel.$livenessState, perform: completeOnUnrecoverableError)
         case .displayingLiveness:
             _FaceLivenessDetectionView(
                 viewModel: viewModel,
@@ -267,6 +261,17 @@ public struct FaceLivenessDetectorView: View {
                 }
             }
         }
+    }
+
+    /// Ends the check once it hits an unrecoverable error, such as the user closing it, on
+    /// the screens that have a close button before the check starts
+    private func completeOnUnrecoverableError(_ output: LivenessStateMachine) {
+        guard case .encounteredUnrecoverableError(let error) = output.state else { return }
+
+        let closeCode = error.webSocketCloseCode ?? .normalClosure
+        viewModel.livenessService?.closeSocket(with: closeCode)
+        isPresented = false
+        onCompletion(.failure(mapError(error)))
     }
 
     /// Overrides the device screen brightness to maximum for the liveness check,

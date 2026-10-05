@@ -9,11 +9,14 @@ import SwiftUI
 
 struct CameraPermissionView: View {
     @Binding var displayingCameraPermissionsNeededAlert: Bool
+    let onClose: () -> Void
 
     init(
-        displayingCameraPermissionsNeededAlert: Binding<Bool> = .constant(false)
+        displayingCameraPermissionsNeededAlert: Binding<Bool> = .constant(false),
+        onClose: @escaping () -> Void
     ) {
         self._displayingCameraPermissionsNeededAlert = displayingCameraPermissionsNeededAlert
+        self.onClose = onClose
     }
 
     var body: some View {
@@ -40,6 +43,7 @@ struct CameraPermissionView: View {
                 editPermissionButton
             }
         }
+        .closeButtonOverlay(action: onClose)
         .alert(isPresented: $displayingCameraPermissionsNeededAlert) {
             Alert(
                 title: Text(LocalizedStrings.camera_setting_alert_title),
@@ -72,6 +76,6 @@ struct CameraPermissionView: View {
 
 struct CameraPermissionView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraPermissionView()
+        CameraPermissionView(onClose: {})
     }
 }
