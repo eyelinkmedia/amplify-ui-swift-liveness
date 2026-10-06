@@ -10,6 +10,7 @@ import SwiftUI
 struct CameraPermissionView: View {
     @Binding var displayingCameraPermissionsNeededAlert: Bool
     let onClose: () -> Void
+    @Environment(\.livenessInstructionAppearance) private var appearance
 
     init(
         displayingCameraPermissionsNeededAlert: Binding<Bool> = .constant(false),
@@ -27,14 +28,14 @@ struct CameraPermissionView: View {
             VStack(alignment: .center) {
                 Spacer()
                 VStack {
-                    Text(LocalizedStrings.camera_permission_change_setting_header)
+                    Text(appearance.displayText(LocalizedStrings.camera_permission_change_setting_header))
                         .font(.title2)
                         .fontWeight(.medium)
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                         .padding(8)
 
-                    Text(LocalizedStrings.camera_permission_change_setting_description)
+                    Text(appearance.displayText(LocalizedStrings.camera_permission_change_setting_description))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                         .padding(8)
@@ -46,15 +47,15 @@ struct CameraPermissionView: View {
         .closeButtonOverlay(action: onClose)
         .alert(isPresented: $displayingCameraPermissionsNeededAlert) {
             Alert(
-                title: Text(LocalizedStrings.camera_setting_alert_title),
-                message: Text(LocalizedStrings.camera_setting_alert_message),
+                title: Text(appearance.displayText(LocalizedStrings.camera_setting_alert_title)),
+                message: Text(appearance.displayText(LocalizedStrings.camera_setting_alert_message)),
                 primaryButton: .default(
-                    Text(LocalizedStrings.camera_setting_alert_update_setting_button_text).bold(),
+                    Text(appearance.displayText(LocalizedStrings.camera_setting_alert_update_setting_button_text)).bold(),
                     action: {
                         goToSettingsAppPage()
                     }),
                 secondaryButton: .default(
-                    Text(LocalizedStrings.camera_setting_alert_not_now_button_text)
+                    Text(appearance.displayText(LocalizedStrings.camera_setting_alert_not_now_button_text))
                 )
             )
         }
