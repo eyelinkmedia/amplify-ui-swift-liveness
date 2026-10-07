@@ -75,7 +75,9 @@ final class _LivenessViewController: UIViewController {
         let height = width / 3 * 4
         let cameraFrame = CGRect(x: x, y: y, width: width, height: height)
 
-        guard let avLayer = viewModel.configureCamera(withinFrame: cameraFrame) else {
+        // The preview fills the whole view (aspect-fill), while face detection and the
+        // oval stay in the coordinates of the 3:4 `cameraFrame`.
+        guard let avLayer = viewModel.configureCamera(withinFrame: view.bounds) else {
             DispatchQueue.main.async { [weak self] in
                 self?.viewModel.livenessState
                     .unrecoverableStateEncountered(.missingVideoPermission)
@@ -85,14 +87,14 @@ final class _LivenessViewController: UIViewController {
 
         avLayer.position = view.center
         self.previewLayer = avLayer
-        if let previewLayer = self.previewLayer {
-            viewModel.cameraViewRect = previewLayer.frame
-        }
+        viewModel.cameraViewRect = cameraFrame
 
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.view.layer.insertSublayer(avLayer, at: 0)
             self.view.layoutIfNeeded()
+            // Continues the oval of the get-ready screen until the challenge oval replaces it
+            self.addOvalView(ovalFrame: OvalGeometry.startOvalFrame(previewSize: avLayer.bounds.size))
 
             self.viewModel.startSession()
         }
@@ -121,6 +123,8 @@ extension _LivenessViewController: FaceLivenessViewControllerPresenter {
             guard let previewLayer = self.previewLayer else { return }
             let imageView = UIImageView(image: uiImage)
             imageView.frame = previewLayer.frame
+            imageView.contentMode = .scaleAspectFill
+            imageView.clipsToBounds = true
             self.view.addSubview(imageView)
             (previewLayer as? AVCaptureVideoPreviewLayer)?.session = nil
             previewLayer.removeFromSuperlayer()
@@ -166,16 +170,16 @@ extension _LivenessViewController: FaceLivenessViewControllerPresenter {
             guard let self else { return }
             guard let previewLayer = self.previewLayer else { return }
 
-            let ovalView = OvalView(
-                frame: previewLayer.frame,
-                ovalFrame: ovalRect
+            let ovalFrame = OvalGeometry.challengeOvalFrame(
+                fromCameraRect: ovalRect,
+                cameraSize: self.viewModel.cameraViewRect.size,
+                previewSize: previewLayer.bounds.size
             )
-            self.ovalView = ovalView
-            ovalView.center = previewLayer.position
-            self.view.insertSubview(
-                ovalView,
-                belowSubview: self.freshnessView
-            )
+            if let ovalView = self.ovalView {
+                ovalView.setOvalFrame(ovalFrame, animated: true)
+            } else {
+                self.addOvalView(ovalFrame: ovalFrame)
+            }
 
             self.ovalRect = ovalRect
             self.ovalExists = true
@@ -184,5 +188,20 @@ extension _LivenessViewController: FaceLivenessViewControllerPresenter {
     
     func completeNoLightCheck() {
         self.viewModel.completeNoLightCheck()
+    }
+
+    private func addOvalView(ovalFrame: CGRect) {
+        guard let previewLayer = self.previewLayer else { return }
+
+        let ovalView = OvalView(
+            frame: previewLayer.frame,
+            ovalFrame: ovalFrame
+        )
+        self.ovalView = ovalView
+        ovalView.center = previewLayer.position
+        self.view.insertSubview(
+            ovalView,
+            belowSubview: self.freshnessView
+        )
     }
 }

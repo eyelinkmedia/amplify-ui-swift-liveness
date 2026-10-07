@@ -8,11 +8,6 @@
 import SwiftUI
 
 struct CameraPreviewView: View {
-    private static let previewWidthRatio = 0.6
-    private static let previewHeightRatio = 0.55
-    private static let previewXPositionRatio = 0.5
-    private static let previewYPositionRatio = 0.6
-    
     @StateObject var model: CameraPreviewViewModel
     
     init(cameraPosition: LivenessCamera) {
@@ -20,26 +15,24 @@ struct CameraPreviewView: View {
     }
     
     var body: some View {
-        ZStack {
-            ImageFrameView(image: model.currentImageFrame)
-                .edgesIgnoringSafeArea(.all)
-                .mask(
-                    GeometryReader { geometry in
-                        Ellipse()
-                            .frame(width: geometry.size.width*Self.previewWidthRatio,
-                                   height: geometry.size.height*Self.previewHeightRatio)
-                            .position(x: geometry.size.width*Self.previewXPositionRatio,
-                                      y: geometry.size.height*Self.previewYPositionRatio)
-                    })
-            GeometryReader { geometry in
+        GeometryReader { geometry in
+            let ovalFrame = OvalGeometry.startOvalFrame(previewSize: geometry.size)
+            ZStack {
+                ImageFrameView(image: model.currentImageFrame)
+                // Dims the video around the oval, like `OvalView` does while recording
+                Path { path in
+                    path.addRect(CGRect(origin: .zero, size: geometry.size))
+                    path.addEllipse(in: ovalFrame)
+                }
+                .fill(Color.black.opacity(0.384), style: FillStyle(eoFill: true))
                 Ellipse()
-                    .stroke(Color.livenessPreviewBorder, style: StrokeStyle(lineWidth: 3))
-                    .frame(width: geometry.size.width*Self.previewWidthRatio,
-                           height: geometry.size.height*Self.previewHeightRatio)
-                    .position(x: geometry.size.width*Self.previewXPositionRatio,
-                              y: geometry.size.height*Self.previewYPositionRatio)
+                    .stroke(Color.white, style: StrokeStyle(lineWidth: 4))
+                    .frame(width: ovalFrame.width, height: ovalFrame.height)
+                    .position(x: ovalFrame.midX, y: ovalFrame.midY)
             }
-        }.onDisappear {
+        }
+        .edgesIgnoringSafeArea(.all)
+        .onDisappear {
             model.stopSession()
         }
     }

@@ -28,34 +28,15 @@ struct _FaceLivenessDetectionView<VideoView: View>: View {
     var body: some View {
         ZStack {
             Color.black
-            ZStack {
-                videoView
-                VStack {
-                    HStack(alignment: .top) {
-                        if viewModel.livenessState.shouldDisplayRecordingIcon {
-                            RecordingButton()
-                                .accessibilityHidden(true)
-                        }
-
-                        Spacer()
-
-                        CloseButton(
-                            action: viewModel.closeButtonAction
-                        )
-                    }
-                    .padding()
-
-                    InstructionContainerView(
-                        viewModel: viewModel
-                    )
-
-                    Spacer()
-                }
-                .padding([.leading, .trailing])
-                .aspectRatio(3/4, contentMode: .fit)
-                .frame(maxWidth: .infinity)
-            }
+            videoView
         }
         .edgesIgnoringSafeArea(.all)
+        ._overlay(alignment: .top) {
+            InstructionContainerView(
+                viewModel: viewModel
+            )
+            .padding(.top, 22)
+        }
+        .closeButtonOverlay(action: viewModel.closeButtonAction)
     }
 }

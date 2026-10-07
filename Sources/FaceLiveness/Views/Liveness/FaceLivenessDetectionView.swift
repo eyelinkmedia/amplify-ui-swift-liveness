@@ -26,6 +26,7 @@ public struct FaceLivenessDetectorView: View {
 
     let disableStartView: Bool
     let challengeOptions: ChallengeOptions
+    let instructionAppearance: LivenessInstructionAppearance
     let onCompletion: (Result<Void, FaceLivenessDetectionError>) -> Void
 
     let sessionTask: Task<FaceLivenessSession, Error>
@@ -36,6 +37,7 @@ public struct FaceLivenessDetectorView: View {
         region: String,
         disableStartView: Bool = false,
         challengeOptions: ChallengeOptions = .init(),
+        instructionAppearance: LivenessInstructionAppearance = .init(),
         isPresented: Binding<Bool>,
         onCompletion: @escaping (Result<Void, FaceLivenessDetectionError>) -> Void
     ) {        
@@ -43,6 +45,7 @@ public struct FaceLivenessDetectorView: View {
         self._isPresented = isPresented
         self.onCompletion = onCompletion
         self.challengeOptions = challengeOptions
+        self.instructionAppearance = instructionAppearance
 
         self.sessionTask = Task {
             let session = try await AWSPredictionsPlugin.startFaceLivenessSession(
@@ -92,6 +95,7 @@ public struct FaceLivenessDetectorView: View {
         self._isPresented = isPresented
         self.onCompletion = onCompletion
         self.challengeOptions = challengeOptions
+        self.instructionAppearance = .init()
 
         self.sessionTask = Task {
             let session = try await AWSPredictionsPlugin.startFaceLivenessSession(
@@ -122,6 +126,7 @@ public struct FaceLivenessDetectorView: View {
 
     public var body: some View {
         content
+            .environment(\.livenessInstructionAppearance, instructionAppearance)
             .onDisappear {
                 restoreOriginalBrightness()
             }
@@ -185,10 +190,14 @@ public struct FaceLivenessDetectorView: View {
                 }
             }
         case .awaitingCameraPermission(let challenge):
-            CameraPermissionView(displayingCameraPermissionsNeededAlert: $displayingCameraPermissionsNeededAlert)
-                .onAppear {
-                    checkCameraPermission(for: challenge)
-                }
+            CameraPermissionView(
+                displayingCameraPermissionsNeededAlert: $displayingCameraPermissionsNeededAlert,
+                onClose: viewModel.closeButtonAction
+            )
+            .onAppear {
+                checkCameraPermission(for: challenge)
+            }
+            .onReceive(viewModel.$livenessState, perform: completeOnUnrecoverableError)
         case .awaitingLivenessSession(let challenge):
             Color.clear
                 .onAppear {
@@ -208,19 +217,20 @@ public struct FaceLivenessDetectorView: View {
                         self.displayState = newState
                     }
                 }
-        case .displayingGetReadyView(let challenge, let cameraPosition):
+        case .displayingGetReadyView(_, let cameraPosition):
             GetReadyPageView(
                 onBegin: {
                     guard displayState != .displayingLiveness else { return }
                     displayState = .displayingLiveness
                 },
+                onClose: viewModel.closeButtonAction,
                 beginCheckButtonDisabled: false,
-                challenge: challenge,
                 cameraPosition: cameraPosition
             )
             .onAppear {
                 setBrightnessToMax()
             }
+            .onReceive(viewModel.$livenessState, perform: completeOnUnrecoverableError)
         case .displayingLiveness:
             _FaceLivenessDetectionView(
                 viewModel: viewModel,
@@ -251,6 +261,17 @@ public struct FaceLivenessDetectorView: View {
                 }
             }
         }
+    }
+
+    /// Ends the check once it hits an unrecoverable error, such as the user closing it, on
+    /// the screens that have a close button before the check starts
+    private func completeOnUnrecoverableError(_ output: LivenessStateMachine) {
+        guard case .encounteredUnrecoverableError(let error) = output.state else { return }
+
+        let closeCode = error.webSocketCloseCode ?? .normalClosure
+        viewModel.livenessService?.closeSocket(with: closeCode)
+        isPresented = false
+        onCompletion(.failure(mapError(error)))
     }
 
     /// Overrides the device screen brightness to maximum for the liveness check,
