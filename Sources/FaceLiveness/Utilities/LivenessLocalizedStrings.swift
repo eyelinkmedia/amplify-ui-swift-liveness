@@ -11,26 +11,8 @@ enum LocalizedStrings {
     /// en = "Liveness Check"
     static let get_ready_page_title = "amplify_ui_liveness_get_ready_page_title".localized()
     
-    /// en = "Photosensitivity Warning"
-    static let get_ready_photosensitivity_title = "amplify_ui_liveness_get_ready_photosensitivity_title".localized()
-
-    /// en = "This check displays colored lights. Use caution if you are photosensitive."
-    static let get_ready_photosensitivity_description = "amplify_ui_liveness_get_ready_photosensitivity_description".localized()
-
-    /// en = "Photosensitivity Information"
-    static let get_ready_photosensitivity_icon_a11y = "amplify_ui_liveness_get_ready_photosensitivity_icon_a11y".localized()
-
-    /// en = "Photosensitivity warning"
-    static let get_ready_photosensitivity_dialog_title = "amplify_ui_liveness_get_ready_photosensitivity_dialog_title".localized()
-
-    /// en = "A small percentage of individuals may experience epileptic seizures when exposed to colored lights. Use caution if you, or anyone in your family, have an epileptic condition."
-    static let get_ready_photosensitivity_dialog_description = "amplify_ui_liveness_get_ready_photosensitivity_dialog_description".localized()
-
     /// en = "Start video check"
     static let get_ready_begin_check = "amplify_ui_liveness_get_ready_begin_check".localized()
-
-    /// en = "REC"
-    static let challenge_recording_indicator_label = "amplify_ui_liveness_challenge_recording_indicator_label".localized()
 
     /// en = "Hold face in oval for colored lights."
     static let challenge_instruction_hold_face_during_freshness = "amplify_ui_liveness_challenge_instruction_hold_face_during_freshness".localized()
