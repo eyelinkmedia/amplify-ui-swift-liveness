@@ -91,6 +91,8 @@ final class _LivenessViewController: UIViewController {
 
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
+            // Magnified like the get-ready preview until the challenge oval appears
+            self.setPreviewMagnification(self.viewModel.framing.startPreviewMagnification, animated: false)
             self.view.layer.insertSublayer(avLayer, at: 0)
             self.view.layoutIfNeeded()
             // Continues the oval of the get-ready screen until the challenge oval replaces it
@@ -121,8 +123,14 @@ extension _LivenessViewController: FaceLivenessViewControllerPresenter {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             guard let previewLayer = self.previewLayer else { return }
-            let imageView = UIImageView(image: uiImage)
-            imageView.frame = previewLayer.frame
+            // The whole camera frame, magnified like the preview, which may show more than
+            // is recorded
+            let image = self.viewModel.latestCameraFrame
+                .map { UIImage(ciImage: CIImage(cvPixelBuffer: $0)) } ?? uiImage
+            let imageView = UIImageView(image: image)
+            imageView.bounds = previewLayer.bounds
+            imageView.center = previewLayer.position
+            imageView.transform = previewLayer.affineTransform()
             imageView.contentMode = .scaleAspectFill
             imageView.clipsToBounds = true
             self.view.addSubview(imageView)
@@ -170,11 +178,15 @@ extension _LivenessViewController: FaceLivenessViewControllerPresenter {
             guard let self else { return }
             guard let previewLayer = self.previewLayer else { return }
 
+            let framing = self.viewModel.framing
             let ovalFrame = OvalGeometry.challengeOvalFrame(
                 fromCameraRect: ovalRect,
                 cameraSize: self.viewModel.cameraViewRect.size,
-                previewSize: previewLayer.bounds.size
+                previewSize: previewLayer.bounds.size,
+                recordedFrameScale: framing.challengePreviewMagnification / framing.recordingCropZoom
             )
+            // A preview that zooms out does it while the oval grows, both at once
+            self.setPreviewMagnification(framing.challengePreviewMagnification, animated: true)
             if let ovalView = self.ovalView {
                 ovalView.setOvalFrame(ovalFrame, animated: true)
             } else {
@@ -193,8 +205,9 @@ extension _LivenessViewController: FaceLivenessViewControllerPresenter {
     private func addOvalView(ovalFrame: CGRect) {
         guard let previewLayer = self.previewLayer else { return }
 
+        // The bounds rather than the frame, which grows with the magnification
         let ovalView = OvalView(
-            frame: previewLayer.frame,
+            frame: CGRect(origin: .zero, size: previewLayer.bounds.size),
             ovalFrame: ovalFrame
         )
         self.ovalView = ovalView
@@ -203,5 +216,27 @@ extension _LivenessViewController: FaceLivenessViewControllerPresenter {
             ovalView,
             belowSubview: self.freshnessView
         )
+    }
+
+    /// Magnifies the preview around its centre, in step with the oval when `animated`. Does
+    /// nothing when it is magnified as much already, as the challenge oval is drawn for
+    /// several frames in a row.
+    private func setPreviewMagnification(_ magnification: CGFloat, animated: Bool) {
+        guard let previewLayer = self.previewLayer else { return }
+        let transform = CATransform3DMakeScale(magnification, magnification, 1)
+        guard !CATransform3DEqualToTransform(previewLayer.transform, transform) else { return }
+
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        if animated {
+            let animation = CABasicAnimation(keyPath: "transform")
+            animation.fromValue = previewLayer.transform
+            animation.toValue = transform
+            animation.duration = OvalView.ovalFrameAnimationDuration
+            animation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            previewLayer.add(animation, forKey: "transform")
+        }
+        previewLayer.transform = transform
+        CATransaction.commit()
     }
 }

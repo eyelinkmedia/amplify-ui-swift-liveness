@@ -27,12 +27,25 @@ enum OvalGeometry {
     private static let challengeOvalScale = 0.95
 
     /// The oval the server sends, `rect` in a camera frame of `cameraSize`, as drawn on a
-    /// preview of `previewSize`
-    static func challengeOvalFrame(fromCameraRect rect: CGRect, cameraSize: CGSize, previewSize: CGSize) -> CGRect {
+    /// preview of `previewSize`. The recorded frame fills the preview when
+    /// `recordedFrameScale` is 1, and takes up its middle when the preview shows more.
+    static func challengeOvalFrame(
+        fromCameraRect rect: CGRect,
+        cameraSize: CGSize,
+        previewSize: CGSize,
+        recordedFrameScale: CGFloat
+    ) -> CGRect {
         let frame = previewRect(fromCameraRect: rect, cameraSize: cameraSize, previewSize: previewSize)
-        return frame.insetBy(
+        let insetFrame = frame.insetBy(
             dx: frame.width * (1 - challengeOvalScale) / 2,
             dy: frame.height * (1 - challengeOvalScale) / 2
+        )
+        let center = CGPoint(x: previewSize.width / 2, y: previewSize.height / 2)
+        return CGRect(
+            x: center.x + (insetFrame.minX - center.x) * recordedFrameScale,
+            y: center.y + (insetFrame.minY - center.y) * recordedFrameScale,
+            width: insetFrame.width * recordedFrameScale,
+            height: insetFrame.height * recordedFrameScale
         )
     }
 

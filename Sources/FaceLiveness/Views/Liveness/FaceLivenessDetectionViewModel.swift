@@ -30,6 +30,7 @@ class FaceLivenessDetectionViewModel: ObservableObject {
     let faceInOvalMatching: FaceInOvalMatching
     let challengeID: String = UUID().uuidString
     let isPreviewScreenEnabled : Bool
+    let framing: LivenessFraming
     var colorSequences: [ColorSequence] = []
     var hasSentFinalVideoEvent = false
     var hasSentFirstVideo = false
@@ -73,7 +74,8 @@ class FaceLivenessDetectionViewModel: ObservableObject {
         closeButtonAction: @escaping () -> Void,
         sessionID: String,
         isPreviewScreenEnabled: Bool,
-        challengeOptions: ChallengeOptions
+        challengeOptions: ChallengeOptions,
+        framing: LivenessFraming = .standard
     ) {
         self.closeButtonAction = closeButtonAction
         self.videoChunker = videoChunker
@@ -83,6 +85,7 @@ class FaceLivenessDetectionViewModel: ObservableObject {
         self.faceInOvalMatching = faceInOvalMatching
         self.isPreviewScreenEnabled = isPreviewScreenEnabled
         self.challengeOptions = challengeOptions
+        self.framing = framing
 
         self.closeButtonAction = { [weak self] in
             guard let self else { return }
@@ -155,6 +158,11 @@ class FaceLivenessDetectionViewModel: ObservableObject {
 
     func stopRecording() {
         captureSession?.stopRunning()
+    }
+
+    /// The last whole camera frame, which may be more than is recorded
+    var latestCameraFrame: CVPixelBuffer? {
+        captureSession?.outputSampleBufferCapturer?.latestCameraFrame
     }
 
     func configureCamera(withinFrame frame: CGRect) -> CALayer? {
@@ -433,10 +441,11 @@ class FaceLivenessDetectionViewModel: ObservableObject {
                                 position: cameraPosition == .front ? .front : .back)
 
         self.captureSession = LivenessCaptureSession(
-            captureDevice: .init(avCaptureDevice: avCaptureDevice),
+            captureDevice: .init(avCaptureDevice: avCaptureDevice, framing: self.framing),
             outputDelegate: OutputSampleBufferCapturer(
                 faceDetector: self.faceDetector,
-                videoChunker: self.videoChunker
+                videoChunker: self.videoChunker,
+                framing: self.framing
             )
         )
     }

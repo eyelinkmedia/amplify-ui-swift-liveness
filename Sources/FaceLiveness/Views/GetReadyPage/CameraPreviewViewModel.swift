@@ -18,7 +18,7 @@ class CameraPreviewViewModel: NSObject, ObservableObject {
         previewCaptureSession?.captureSession
     }
 
-    init(cameraPosition: LivenessCamera) {
+    init(cameraPosition: LivenessCamera, framing: LivenessFraming = .standard) {
         self.cameraPosition = cameraPosition
 
         super.init()
@@ -33,7 +33,7 @@ class CameraPreviewViewModel: NSObject, ObservableObject {
         let outputDelegate = CameraPreviewOutputSampleBufferDelegate { _ in }
 
         self.previewCaptureSession = LivenessCaptureSession(
-            captureDevice: .init(avCaptureDevice: avCaptureDevice),
+            captureDevice: .init(avCaptureDevice: avCaptureDevice, framing: framing),
             outputDelegate: outputDelegate
         )
 

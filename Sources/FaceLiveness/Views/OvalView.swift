@@ -9,7 +9,7 @@ import Foundation
 import UIKit
 
 class OvalView: UIView {
-    private static let ovalFrameAnimationDuration: CFTimeInterval = 0.3
+    static let ovalFrameAnimationDuration: CFTimeInterval = 0.3
 
     private(set) var ovalFrame: CGRect
     private let dimmingLayer = CAShapeLayer()

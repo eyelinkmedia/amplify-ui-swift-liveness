@@ -7,6 +7,7 @@
 
 import UIKit
 import AVFoundation
+import os
 
 class LivenessCaptureSession {
     let captureDevice: LivenessCaptureDevice
@@ -54,9 +55,10 @@ class LivenessCaptureSession {
         }
 
         try setupInput(cameraInput, for: captureSession)
-        captureSession.sessionPreset = captureDevice.preset
+        try setupFormat(of: camera, for: captureSession)
         try setupOutput(videoOutput, for: captureSession)
         try captureDevice.configure()
+        logFormat(of: camera)
 
         videoOutput.setSampleBufferDelegate(
             outputDelegate,
@@ -93,6 +95,49 @@ class LivenessCaptureSession {
     private func teardownExistingSession(input: AVCaptureDeviceInput) {
         stopRunning()
         captureSession?.removeInput(input)
+    }
+
+    /// Uses the preset, or a bigger frame when only its centre is recorded, so that the
+    /// recorded crop takes real pixels rather than upscaling. Called after the input is
+    /// added, as adding it applies the session preset.
+    private func setupFormat(of camera: AVCaptureDevice, for captureSession: AVCaptureSession) throws {
+        guard captureDevice.framing.recordingCropZoom > 1 else {
+            captureSession.sessionPreset = captureDevice.preset
+            return
+        }
+        guard let format = Self.uncroppedFormat(for: camera) else {
+            Logger.livenessCamera.error("No 4:3 format of at least 1280x960 at 30 fps, cropping the preset instead")
+            captureSession.sessionPreset = captureDevice.preset
+            return
+        }
+
+        try camera.lockForConfiguration()
+        camera.activeFormat = format
+        camera.unlockForConfiguration()
+    }
+
+    private func logFormat(of camera: AVCaptureDevice) {
+        let format = camera.activeFormat
+        let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+        let framing = String(describing: captureDevice.framing)
+        Logger.livenessCamera.info(
+            "\(camera.localizedName, privacy: .public): \(dimensions.width)x\(dimensions.height), field of view \(format.videoFieldOfView)°, framing \(framing, privacy: .public)"
+        )
+    }
+
+    /// The smallest 4:3 format of at least 1280x960 that records at 30 fps
+    private static func uncroppedFormat(for camera: AVCaptureDevice) -> AVCaptureDevice.Format? {
+        let width = { (format: AVCaptureDevice.Format) in
+            CMVideoFormatDescriptionGetDimensions(format.formatDescription).width
+        }
+        return camera.formats
+            .filter { format in
+                let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+                return dimensions.width * 3 == dimensions.height * 4
+                    && dimensions.width >= 1280
+                    && format.videoSupportedFrameRateRanges.contains { $0.minFrameRate <= 30 && $0.maxFrameRate >= 30 }
+            }
+            .min { width($0) < width($1) }
     }
 
     private func setupInput(
@@ -137,4 +182,8 @@ class LivenessCaptureSession {
         previewLayer.frame = frame
         return previewLayer
     }
+}
+
+extension Logger {
+    static let livenessCamera = Logger(subsystem: "com.amazonaws.faceliveness", category: "Camera")
 }

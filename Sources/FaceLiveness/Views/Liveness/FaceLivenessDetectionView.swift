@@ -27,6 +27,7 @@ public struct FaceLivenessDetectorView: View {
     let disableStartView: Bool
     let challengeOptions: ChallengeOptions
     let instructionAppearance: LivenessInstructionAppearance
+    let framing: LivenessFraming
     let onCompletion: (Result<Void, FaceLivenessDetectionError>) -> Void
 
     let sessionTask: Task<FaceLivenessSession, Error>
@@ -38,6 +39,7 @@ public struct FaceLivenessDetectorView: View {
         disableStartView: Bool = false,
         challengeOptions: ChallengeOptions = .init(),
         instructionAppearance: LivenessInstructionAppearance = .init(),
+        framing: LivenessFraming = .standard,
         isPresented: Binding<Bool>,
         onCompletion: @escaping (Result<Void, FaceLivenessDetectionError>) -> Void
     ) {        
@@ -46,6 +48,7 @@ public struct FaceLivenessDetectorView: View {
         self.onCompletion = onCompletion
         self.challengeOptions = challengeOptions
         self.instructionAppearance = instructionAppearance
+        self.framing = framing
 
         self.sessionTask = Task {
             let session = try await AWSPredictionsPlugin.startFaceLivenessSession(
@@ -76,7 +79,8 @@ public struct FaceLivenessDetectorView: View {
                 closeButtonAction: { onCompletion(.failure(.userCancelled)) },
                 sessionID: sessionID,
                 isPreviewScreenEnabled: !disableStartView,
-                challengeOptions: challengeOptions
+                challengeOptions: challengeOptions,
+                framing: framing
             )
         )
     }
@@ -96,6 +100,7 @@ public struct FaceLivenessDetectorView: View {
         self.onCompletion = onCompletion
         self.challengeOptions = challengeOptions
         self.instructionAppearance = .init()
+        self.framing = .standard
 
         self.sessionTask = Task {
             let session = try await AWSPredictionsPlugin.startFaceLivenessSession(
@@ -225,7 +230,8 @@ public struct FaceLivenessDetectorView: View {
                 },
                 onClose: viewModel.closeButtonAction,
                 beginCheckButtonDisabled: false,
-                cameraPosition: cameraPosition
+                cameraPosition: cameraPosition,
+                framing: framing
             )
             .onAppear {
                 setBrightnessToMax()

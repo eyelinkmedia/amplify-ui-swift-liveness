@@ -12,24 +12,27 @@ struct GetReadyPageView: View {
     let onBegin: () -> Void
     let onClose: () -> Void
     let cameraPosition: LivenessCamera
+    let framing: LivenessFraming
 
     init(
         onBegin: @escaping () -> Void,
         onClose: @escaping () -> Void,
         beginCheckButtonDisabled: Bool = false,
-        cameraPosition: LivenessCamera
+        cameraPosition: LivenessCamera,
+        framing: LivenessFraming = .standard
     ) {
         self.onBegin = onBegin
         self.onClose = onClose
         self.beginCheckButtonDisabled = beginCheckButtonDisabled
         self.cameraPosition = cameraPosition
+        self.framing = framing
     }
 
     var body: some View {
         // The preview sits behind the whole page rather than above the button, so it
         // fills the screen exactly like the recording preview that follows.
         ZStack {
-            CameraPreviewView(cameraPosition: cameraPosition)
+            CameraPreviewView(cameraPosition: cameraPosition, framing: framing)
             VStack {
                 InstructionView(
                     icon: .centerYourFace,
