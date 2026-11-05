@@ -6,39 +6,37 @@
 //
 
 import Foundation
-import CoreImage
-import Combine
 import AVFoundation
 import Amplify
 
 class CameraPreviewViewModel: NSObject, ObservableObject {
-    @Published var currentImageFrame: CGImage?
-    @Published var buffer: CVPixelBuffer?
-    
     var previewCaptureSession: LivenessCaptureSession?
     let cameraPosition: LivenessCamera
-    
+
+    /// Shown through a preview layer, which draws the frames itself
+    var session: AVCaptureSession? {
+        previewCaptureSession?.captureSession
+    }
+
     init(cameraPosition: LivenessCamera) {
         self.cameraPosition = cameraPosition
-        
+
         super.init()
-        setupSubscriptions()
-        
+
         let avCaptureDevice = AVCaptureDevice.DiscoverySession(
             deviceTypes: [.builtInWideAngleCamera],
             mediaType: .video,
             position: cameraPosition == .front ? .front : .back
         ).devices.first
 
-        let outputDelegate = CameraPreviewOutputSampleBufferDelegate { [weak self] buffer in
-            self?.updateBuffer(buffer)
-        }
+        // The session always delivers frames to an output, which the preview has no use for
+        let outputDelegate = CameraPreviewOutputSampleBufferDelegate { _ in }
 
         self.previewCaptureSession = LivenessCaptureSession(
             captureDevice: .init(avCaptureDevice: avCaptureDevice),
             outputDelegate: outputDelegate
         )
-        
+
         do {
             try previewCaptureSession?.configureCamera()
             previewCaptureSession?.startSession()
@@ -47,22 +45,7 @@ class CameraPreviewViewModel: NSObject, ObservableObject {
         }
     }
 
-    func setupSubscriptions() {
-        self.$buffer
-            .receive(on: RunLoop.main)
-            .compactMap {
-                return CGImage.convert(from: $0)
-            }
-            .assign(to: &$currentImageFrame)
-    }
-
     func stopSession() {
         previewCaptureSession?.stopRunning()
-    }
-
-    func updateBuffer(_ buffer: CVImageBuffer) {
-        DispatchQueue.main.async {
-            self.buffer = buffer
-        }
     }
 }
