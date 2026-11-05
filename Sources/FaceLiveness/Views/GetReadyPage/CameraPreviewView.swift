@@ -18,7 +18,7 @@ struct CameraPreviewView: View {
         GeometryReader { geometry in
             let ovalFrame = OvalGeometry.startOvalFrame(previewSize: geometry.size)
             ZStack {
-                ImageFrameView(image: model.currentImageFrame)
+                CameraPreviewLayerView(session: model.session)
                 // Dims the video around the oval, like `OvalView` does while recording
                 Path { path in
                     path.addRect(CGRect(origin: .zero, size: geometry.size))
