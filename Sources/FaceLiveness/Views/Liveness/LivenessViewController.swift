@@ -28,12 +28,6 @@ final class _LivenessViewController: UIViewController {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
         viewModel.livenessViewControllerDelegate = self
-        viewModel.normalizeFace = { [weak self] face in
-            guard let self = self else { return face }
-            return DispatchQueue.main.sync {
-                face.normalize(width: self.view.frame.width, height: self.view.frame.width / 3 * 4)
-            }
-        }
     }
     
     deinit {
@@ -88,6 +82,10 @@ final class _LivenessViewController: UIViewController {
         avLayer.position = view.center
         self.previewLayer = avLayer
         viewModel.cameraViewRect = cameraFrame
+        let cameraSize = cameraFrame.size
+        viewModel.normalizeFace = { face in
+            face.normalize(width: cameraSize.width, height: cameraSize.height)
+        }
 
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
