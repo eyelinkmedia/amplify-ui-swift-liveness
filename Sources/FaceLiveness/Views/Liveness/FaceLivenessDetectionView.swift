@@ -127,6 +127,9 @@ public struct FaceLivenessDetectorView: View {
             .environment(\.livenessInstructionAppearance, instructionAppearance)
             .onDisappear {
                 restoreScreen()
+                // the get ready screen leaves the camera running for the check, so stop it here
+                // in case the app removes the detector before the check starts
+                viewModel.stopRecording()
             }
     }
 
@@ -223,7 +226,8 @@ public struct FaceLivenessDetectorView: View {
                 },
                 onClose: viewModel.closeButtonAction,
                 beginCheckButtonDisabled: false,
-                cameraPosition: cameraPosition
+                cameraPosition: cameraPosition,
+                sharedCaptureSession: viewModel.captureSession
             )
             .onAppear {
                 setScreenForCheck()

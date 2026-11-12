@@ -7,30 +7,38 @@
 import AVFoundation
 import SwiftUI
 
-/// Shows a capture session through `AVCaptureVideoPreviewLayer`, which draws the frames on the
-/// GPU, set up like the preview of the recording screen
+/// Shows a capture session's `AVCaptureVideoPreviewLayer`, which draws the frames on the GPU, set
+/// up like the preview of the recording screen. The layer is the session's own rather than this
+/// view's, so the check can take it over without giving the session a second one.
 struct CameraPreviewLayerView: UIViewRepresentable {
-    let session: AVCaptureSession?
+    let previewLayer: AVCaptureVideoPreviewLayer?
 
     func makeUIView(context: Context) -> PreviewView {
         let view = PreviewView()
         view.backgroundColor = .black
-        view.previewLayer.videoGravity = .resizeAspectFill
-        view.previewLayer.session = session
-        view.previewLayer.connection?.videoOrientation = .portrait
+        view.previewLayer = previewLayer
         return view
     }
 
     func updateUIView(_ uiView: PreviewView, context: Context) {}
 
     final class PreviewView: UIView {
-        override class var layerClass: AnyClass {
-            AVCaptureVideoPreviewLayer.self
+        var previewLayer: AVCaptureVideoPreviewLayer? {
+            didSet {
+                guard let previewLayer else { return }
+                layer.addSublayer(previewLayer)
+                setNeedsLayout()
+            }
         }
 
-        var previewLayer: AVCaptureVideoPreviewLayer {
-            // swiftlint:disable:next force_cast
-            layer as! AVCaptureVideoPreviewLayer
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            // once the check has taken the layer over, it's no longer this view's to lay out
+            guard let previewLayer, previewLayer.superlayer === layer else { return }
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            previewLayer.frame = bounds
+            CATransaction.commit()
         }
     }
 }
