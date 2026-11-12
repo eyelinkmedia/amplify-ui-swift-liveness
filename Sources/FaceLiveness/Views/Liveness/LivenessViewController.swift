@@ -116,6 +116,7 @@ final class _LivenessViewController: UIViewController {
 
 extension _LivenessViewController: FaceLivenessViewControllerPresenter {
     func displaySingleFrame(uiImage: UIImage) {
+        let uiImage = Self.rendered(uiImage)
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             guard let previewLayer = self.previewLayer else { return }
@@ -124,10 +125,22 @@ extension _LivenessViewController: FaceLivenessViewControllerPresenter {
             imageView.contentMode = .scaleAspectFill
             imageView.clipsToBounds = true
             self.view.addSubview(imageView)
-            (previewLayer as? AVCaptureVideoPreviewLayer)?.session = nil
             previewLayer.removeFromSuperlayer()
+            // on screen before the camera stops: detaching the preview from the running camera,
+            // then stopping it, left the screen black until both were done
+            CATransaction.flush()
             self.viewModel.stopRecording()
+            (previewLayer as? AVCaptureVideoPreviewLayer)?.session = nil
         }
+    }
+
+    /// Draws the frame now, on the camera's queue, so it shows as soon as it's on screen rather
+    /// than being drawn from its `CIImage` then
+    private nonisolated static func rendered(_ image: UIImage) -> UIImage {
+        guard let ciImage = image.ciImage,
+              let cgImage = CIContext().createCGImage(ciImage, from: ciImage.extent)
+        else { return image }
+        return UIImage(cgImage: cgImage)
     }
 
     func displayFreshness(colorSequences: [FaceLivenessSession.DisplayColor]) {
