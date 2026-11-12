@@ -103,22 +103,6 @@ struct LivenessStateMachine {
         state = .completed
     }
 
-    var shouldDisplayRecordingIcon: Bool {
-        // Only show the REC indicator while the session is actively capturing:
-        // from when the oval is displayed through the freshness (color) check.
-        // Everything else — including `.waitForRecording` (before the oval) and the
-        // post-challenge verifying states — is not capturing, so the icon stays hidden.
-        switch state {
-        case .recording(ovalDisplayed: true),
-             .awaitingFaceInOvalMatch,
-             .faceMatched,
-             .displayingFreshness:
-            return true
-        default:
-            return false
-        }
-    }
-
     enum State: Equatable {
         case initial
         case awaitingChallengeType

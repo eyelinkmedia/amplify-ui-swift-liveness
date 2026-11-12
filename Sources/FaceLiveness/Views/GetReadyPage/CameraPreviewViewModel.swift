@@ -6,39 +6,35 @@
 //
 
 import Foundation
-import CoreImage
-import Combine
 import AVFoundation
 import Amplify
 
 class CameraPreviewViewModel: NSObject, ObservableObject {
-    @Published var currentImageFrame: CGImage?
-    @Published var buffer: CVPixelBuffer?
-    
     var previewCaptureSession: LivenessCaptureSession?
     let cameraPosition: LivenessCamera
-    
+
+    /// Shown through a preview layer, which draws the frames itself
+    var session: AVCaptureSession? {
+        previewCaptureSession?.captureSession
+    }
+
     init(cameraPosition: LivenessCamera) {
         self.cameraPosition = cameraPosition
-        
+
         super.init()
-        setupSubscriptions()
-        
+
         let avCaptureDevice = AVCaptureDevice.DiscoverySession(
             deviceTypes: [.builtInWideAngleCamera],
             mediaType: .video,
             position: cameraPosition == .front ? .front : .back
         ).devices.first
 
-        let outputDelegate = CameraPreviewOutputSampleBufferDelegate { [weak self] buffer in
-            self?.updateBuffer(buffer)
-        }
-
+        // No frame output: the preview layer draws the frames itself
         self.previewCaptureSession = LivenessCaptureSession(
             captureDevice: .init(avCaptureDevice: avCaptureDevice),
-            outputDelegate: outputDelegate
+            outputDelegate: nil
         )
-        
+
         do {
             try previewCaptureSession?.configureCamera()
             previewCaptureSession?.startSession()
@@ -47,22 +43,7 @@ class CameraPreviewViewModel: NSObject, ObservableObject {
         }
     }
 
-    func setupSubscriptions() {
-        self.$buffer
-            .receive(on: RunLoop.main)
-            .compactMap {
-                return CGImage.convert(from: $0)
-            }
-            .assign(to: &$currentImageFrame)
-    }
-
     func stopSession() {
         previewCaptureSession?.stopRunning()
-    }
-
-    func updateBuffer(_ buffer: CVImageBuffer) {
-        DispatchQueue.main.async {
-            self.buffer = buffer
-        }
     }
 }

@@ -246,41 +246,6 @@ final class FaceLivenessDetectionViewModelTestCase: XCTestCase {
         XCTAssertEqual(viewModel.livenessState.state, .encounteredUnrecoverableError(.timedOut))
     }
 
-    /// Given:  A `FaceLivenessDetectionViewModel` in a non-capturing state
-    /// When: `shouldDisplayRecordingIcon` is read
-    /// Then: The REC indicator is only shown while actively capturing (oval displayed through freshness)
-    func testShouldDisplayRecordingIcon() {
-        let capturing: [LivenessStateMachine.State] = [
-            .recording(ovalDisplayed: true),
-            .awaitingFaceInOvalMatch(.moveFaceCloser, 0.5),
-            .faceMatched,
-            .displayingFreshness
-        ]
-        for state in capturing {
-            XCTAssertTrue(
-                LivenessStateMachine(state: state).shouldDisplayRecordingIcon,
-                "Expected REC indicator to show for \(state)"
-            )
-        }
-
-        let notCapturing: [LivenessStateMachine.State] = [
-            .initial,
-            .pendingFacePreparedConfirmation(.pendingCheck),
-            .waitForRecording,
-            .recording(ovalDisplayed: false),
-            .completedDisplayingFreshness,
-            .completedNoLightCheck,
-            .completed,
-            .encounteredUnrecoverableError(.timedOut)
-        ]
-        for state in notCapturing {
-            XCTAssertFalse(
-                LivenessStateMachine(state: state).shouldDisplayRecordingIcon,
-                "Expected REC indicator to be hidden for \(state)"
-            )
-        }
-    }
-
     /// Given:  The public `FaceLivenessDetectionError` values
     /// When: Comparing `.sessionInterrupted` against `.userCancelled`
     /// Then: They are distinct so integrators can tell an interruption apart from a cancel

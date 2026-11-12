@@ -12,14 +12,15 @@ class LivenessCaptureSession {
     let captureDevice: LivenessCaptureDevice
     private let captureQueue = DispatchQueue(label: "com.amazonaws.faceliveness.cameracapturequeue")
     private let configurationQueue = DispatchQueue(label: "com.amazonaws.faceliveness.sessionconfiguration", qos: .userInteractive)
-    let outputDelegate: AVCaptureVideoDataOutputSampleBufferDelegate
+    /// Receives the camera frames, nil when the session only feeds a preview layer
+    let outputDelegate: AVCaptureVideoDataOutputSampleBufferDelegate?
     var captureSession: AVCaptureSession?
     
     var outputSampleBufferCapturer: OutputSampleBufferCapturer? {
         return outputDelegate as? OutputSampleBufferCapturer
     }
 
-    init(captureDevice: LivenessCaptureDevice, outputDelegate: AVCaptureVideoDataOutputSampleBufferDelegate) {
+    init(captureDevice: LivenessCaptureDevice, outputDelegate: AVCaptureVideoDataOutputSampleBufferDelegate?) {
         self.captureDevice = captureDevice
         self.outputDelegate = outputDelegate
     }
@@ -44,7 +45,6 @@ class LivenessCaptureSession {
         else { throw LivenessCaptureSessionError.cameraUnavailable }
 
         let cameraInput = try AVCaptureDeviceInput(device: camera)
-        let videoOutput = AVCaptureVideoDataOutput()
 
         teardownExistingSession(input: cameraInput)
         captureSession = AVCaptureSession()
@@ -55,13 +55,12 @@ class LivenessCaptureSession {
 
         try setupInput(cameraInput, for: captureSession)
         captureSession.sessionPreset = captureDevice.preset
-        try setupOutput(videoOutput, for: captureSession)
+        if let outputDelegate {
+            let videoOutput = AVCaptureVideoDataOutput()
+            try setupOutput(videoOutput, for: captureSession)
+            videoOutput.setSampleBufferDelegate(outputDelegate, queue: captureQueue)
+        }
         try captureDevice.configure()
-
-        videoOutput.setSampleBufferDelegate(
-            outputDelegate,
-            queue: captureQueue
-        )
     }
 
     func startSession() {
