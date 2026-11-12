@@ -87,15 +87,15 @@ final class _LivenessViewController: UIViewController {
             face.normalize(width: cameraSize.width, height: cameraSize.height)
         }
 
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            self.view.layer.insertSublayer(avLayer, at: 0)
-            self.view.layoutIfNeeded()
-            // Continues the oval of the get-ready screen until the challenge oval replaces it
-            self.addOvalView(ovalFrame: OvalGeometry.startOvalFrame(previewSize: avLayer.bounds.size))
+        // now rather than on the next pass of the main queue, so the check's first frame already
+        // shows the camera and the oval: the get ready screen is gone by then, and the frame in
+        // between was black
+        self.view.layer.insertSublayer(avLayer, at: 0)
+        self.view.layoutIfNeeded()
+        // Continues the oval of the get-ready screen until the challenge oval replaces it
+        self.addOvalView(ovalFrame: OvalGeometry.startOvalFrame(previewSize: avLayer.bounds.size))
 
-            self.viewModel.startSession()
-        }
+        self.viewModel.startSession()
     }
 
     var runningFreshness = false
