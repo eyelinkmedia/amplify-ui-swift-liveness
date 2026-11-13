@@ -15,8 +15,8 @@ class LivenessCaptureSession {
     /// Receives the camera frames, nil when the session only feeds a preview layer
     let outputDelegate: AVCaptureVideoDataOutputSampleBufferDelegate?
     var captureSession: AVCaptureSession?
-    /// The preview `startPreview()` sets up for the get ready screen, which the check then takes
-    /// over
+    /// The preview of the session: the one `startPreview()` sets up for the get ready screen,
+    /// which the check then takes over, or the one the check sets up itself
     private(set) var sharedPreviewLayer: AVCaptureVideoPreviewLayer?
     
     var outputSampleBufferCapturer: OutputSampleBufferCapturer? {
@@ -26,6 +26,10 @@ class LivenessCaptureSession {
     init(captureDevice: LivenessCaptureDevice, outputDelegate: AVCaptureVideoDataOutputSampleBufferDelegate?) {
         self.captureDevice = captureDevice
         self.outputDelegate = outputDelegate
+    }
+
+    deinit {
+        stopRunning()
     }
 
     func configureCamera(frame: CGRect) throws -> CALayer {
@@ -53,6 +57,8 @@ class LivenessCaptureSession {
             frame: frame,
             for: captureSession
         )
+        // kept until the session stops, see stopRunning()
+        sharedPreviewLayer = previewLayer
 
         return previewLayer
     }
@@ -117,21 +123,31 @@ class LivenessCaptureSession {
 
     func stopRunning() {
         guard let session = captureSession else { return }
-        defer {
-            captureSession = nil
-            sharedPreviewLayer = nil
-        }
+        let previewLayer = sharedPreviewLayer
+        captureSession = nil
+        sharedPreviewLayer = nil
 
-        if session.isRunning {
-            session.stopRunning()
-        }
+        // On the configuration queue, after any startRunning() still in progress there: changing
+        // the session while it starts throws an exception
+        configurationQueue.async {
+            if session.isRunning {
+                session.stopRunning()
+            }
 
-        for input in session.inputs {
-            session.removeInput(input)
-        }
-        
-        for output in session.outputs {
-            session.removeOutput(output)
+            for input in session.inputs {
+                session.removeInput(input)
+            }
+
+            for output in session.outputs {
+                session.removeOutput(output)
+            }
+
+            // Releasing the preview layer detaches it from the session, which changes the session
+            // too, so the layer goes only once the session has stopped. Back on the main thread,
+            // where layers belong.
+            DispatchQueue.main.async {
+                withExtendedLifetime(previewLayer) {}
+            }
         }
     }
 
