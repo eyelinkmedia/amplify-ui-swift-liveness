@@ -11,17 +11,29 @@ import Amplify
 
 class CameraPreviewViewModel: NSObject, ObservableObject {
     var previewCaptureSession: LivenessCaptureSession?
+    /// The check's session, shown here so starting the check doesn't restart the camera.
+    private var sharedCaptureSession: LivenessCaptureSession?
     let cameraPosition: LivenessCamera
 
-    /// Shown through a preview layer, which draws the frames itself
-    var session: AVCaptureSession? {
-        previewCaptureSession?.captureSession
+    /// Draws the frames itself; the check takes over the shared session's one
+    var previewLayer: AVCaptureVideoPreviewLayer? {
+        (sharedCaptureSession ?? previewCaptureSession)?.sharedPreviewLayer
     }
 
-    init(cameraPosition: LivenessCamera) {
+    init(cameraPosition: LivenessCamera, sharedCaptureSession: LivenessCaptureSession? = nil) {
         self.cameraPosition = cameraPosition
 
         super.init()
+
+        if let sharedCaptureSession {
+            self.sharedCaptureSession = sharedCaptureSession
+            do {
+                try sharedCaptureSession.startPreview()
+            } catch {
+                Amplify.Logging.default.error("Error starting preview capture session with error: \(error)")
+            }
+            return
+        }
 
         let avCaptureDevice = AVCaptureDevice.DiscoverySession(
             deviceTypes: [.builtInWideAngleCamera],
@@ -36,14 +48,15 @@ class CameraPreviewViewModel: NSObject, ObservableObject {
         )
 
         do {
-            try previewCaptureSession?.configureCamera()
-            previewCaptureSession?.startSession()
+            try previewCaptureSession?.startPreview()
         } catch {
             Amplify.Logging.default.error("Error starting preview capture session with error: \(error)")
         }
     }
 
     func stopSession() {
+        // the shared session keeps running for the check, which takes it over when it starts,
+        // or stops it if the detector is removed first
         previewCaptureSession?.stopRunning()
     }
 }

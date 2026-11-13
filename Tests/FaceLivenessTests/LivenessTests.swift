@@ -21,7 +21,7 @@ final class FaceLivenessDetectionViewModelTestCase: XCTestCase {
 
         let viewModel = FaceLivenessDetectionViewModel(
             faceDetector: faceDetector,
-            faceInOvalMatching: .init(instructor: .init()),
+            faceInOvalMatching: .init(),
             videoChunker: videoChunker,
             closeButtonAction: {},
             sessionID: UUID().uuidString,
@@ -75,13 +75,10 @@ final class FaceLivenessDetectionViewModelTestCase: XCTestCase {
 
         viewModel.initializeLivenessStream()
         viewModel.process(newResult: .noFace)
-        XCTAssertEqual(videoChunker.currentState, .pending)
+        XCTAssertEqual(videoChunker.state, .pending)
 
-        viewModel.sendInitialFaceDetectedEvent(
-            initialFace: .zero,
-            videoStartTime: Date().timestampMilliseconds
-        )
-        XCTAssertEqual(videoChunker.currentState, .writing)
+        viewModel.sendInitialFaceDetectedEvent(initialFace: .zero)
+        XCTAssertEqual(videoChunker.state, .writing)
 
         let initialSegment = Data([0, 1])
         var currentSegment = Data([25, 42])
@@ -103,14 +100,74 @@ final class FaceLivenessDetectionViewModelTestCase: XCTestCase {
                     "initializeLivenessStream(withSessionID:userAgent:challenges:options:)"
         ])
     }
-    
+
     /// Given:  A `FaceLivenessDetectionViewModel`
     /// When: The viewModel is processes a single face result with a face distance less than the inital face distance
     /// Then: The end state of this flow is `.recording(ovalDisplayed: false)`
     func testTransitionToRecordingState() async throws {
         viewModel.livenessService = self.livenessService
+        configureFaceMovementSession()
+
+        viewModel.livenessState.checkIsFacePrepared()
+        XCTAssertEqual(viewModel.livenessState.state, .pendingFacePreparedConfirmation(.pendingCheck))
+        XCTAssertEqual(faceDetector.interactions, [
+            "setResultHandler(detectionResultHandler:) (FaceLivenessDetectionViewModel)"
+        ])
+        XCTAssertEqual(livenessService.interactions, [])
+
+        viewModel.process(newResult: .singleFace(faceInRange))
+        try await Task.sleep(seconds: 1)
+
+        XCTAssertEqual(viewModel.livenessState.state, .recording(ovalDisplayed: false))
+        XCTAssertEqual(faceDetector.interactions, [
+            "setResultHandler(detectionResultHandler:) (FaceLivenessDetectionViewModel)"
+        ])
+    }
+
+    /// Given:  A `FaceLivenessDetectionViewModel` checking the face distance
+    /// When: A face at the right distance is detected
+    /// Then: Recording begins on the next main-thread turn, so the oval comes up straight away
+    func testFaceInRangeBeginsRecordingRightAway() async throws {
+        viewModel.livenessService = self.livenessService
+        configureFaceMovementSession()
+        viewModel.livenessState.checkIsFacePrepared()
+
+        viewModel.process(newResult: .singleFace(faceInRange))
+        try await Task.sleep(nanoseconds: 100_000_000)
+
+        XCTAssertEqual(viewModel.livenessState.state, .recording(ovalDisplayed: false))
+    }
+
+    /// Given:  A `FaceLivenessDetectionViewModel` checking the face distance
+    /// When: A second in-range face was queued before the first began recording, and the oval
+    ///       is displayed in between
+    /// Then: The second doesn't restart recording and hide the oval again
+    func testQueuedFaceInRangeDoesNotHideTheOval() async throws {
+        viewModel.livenessService = self.livenessService
+        configureFaceMovementSession()
+        viewModel.livenessState.checkIsFacePrepared()
+
+        viewModel.process(newResult: .singleFace(faceInRange))
+        DispatchQueue.main.async { self.viewModel.livenessState.ovalDisplayed() }
+        viewModel.process(newResult: .singleFace(faceInRange))
+        try await Task.sleep(nanoseconds: 100_000_000)
+
+        XCTAssertEqual(viewModel.livenessState.state, .recording(ovalDisplayed: true))
+    }
+
+    /// Given:  A `FaceLivenessDetectionViewModel`
+    /// When: The service's challenge arrives
+    /// Then: The video writer starts ahead of the check, before the camera does
+    func testChallengePreparesTheVideoWriter() {
+        viewModel.configureCaptureSession(challenge: .faceMovementAndLightChallenge("2.0.0"))
+
+        waitForWriter(of: videoChunker, toReach: .writing)
+        XCTAssertEqual(videoChunker.state, .pending)
+    }
+
+    /// A face movement session whose oval challenge accepts `faceInRange` as close enough.
+    private func configureFaceMovementSession() {
         viewModel.challengeReceived = .faceMovementChallenge("1.0.0")
-        
         let face = FaceLivenessSession.OvalMatchChallenge.Face(
             distanceThreshold: 0.32,
             distanceThresholdMax: 0.1,
@@ -118,7 +175,6 @@ final class FaceLivenessDetectionViewModelTestCase: XCTestCase {
             iouWidthThreshold: 0.1,
             iouHeightThreshold: 0.1
         )
-        
         let oval = FaceLivenessSession.OvalMatchChallenge.Oval(boundingBox: .init(x: 0.1,
                                                                                   y: 0.1,
                                                                                   width: 0.1,
@@ -128,18 +184,13 @@ final class FaceLivenessDetectionViewModelTestCase: XCTestCase {
                                                                iouWidthThreshold: 0.1,
                                                                iouHeightThreshold: 0.1,
                                                                ovalFitTimeout: 1)
-        
         viewModel.sessionConfiguration = .faceMovement(.init(faceDetectionThreshold: 0.7,
-                                                                         face: face,
-                                                                         oval: oval))
+                                                             face: face,
+                                                             oval: oval))
+    }
 
-        viewModel.livenessState.checkIsFacePrepared()
-        XCTAssertEqual(viewModel.livenessState.state, .pendingFacePreparedConfirmation(.pendingCheck))
-        XCTAssertEqual(faceDetector.interactions, [
-            "setResultHandler(detectionResultHandler:) (FaceLivenessDetectionViewModel)"
-        ])
-        XCTAssertEqual(livenessService.interactions, [])
-
+    /// A face within `configureFaceMovementSession()`'s distance threshold.
+    private var faceInRange: DetectedFace {
         let boundingBox = CGRect(x: 0.26788579725878847, y: 0.40317180752754211, width: 0.45549795395626447, height: 0.34162446856498718)
         let leftEye = CGPoint(x: 0.61124476128552629, y: 0.4918237030506134)
         let rightEye = CGPoint(x: 0.38036393762719456, y: 0.48050540685653687)
@@ -147,14 +198,7 @@ final class FaceLivenessDetectionViewModelTestCase: XCTestCase {
         let mouth = CGPoint(x: 0.47411978167652435, y: 0.63170802593231201)
         let leftEar = CGPoint(x: 0.7898947484263203, y: 0.5973731875419617)
         let rightEar = CGPoint(x: 0.1658528943614037, y: 0.5668278932571411)
-        let detectedFace = DetectedFace(boundingBox: boundingBox, leftEye: leftEye, rightEye: rightEye, nose: nose, mouth: mouth, rightEar: rightEar, leftEar: leftEar, confidence: 0.971859633)
-        viewModel.process(newResult: .singleFace(detectedFace))
-        try await Task.sleep(seconds: 1)
-
-        XCTAssertEqual(viewModel.livenessState.state, .recording(ovalDisplayed: false))
-        XCTAssertEqual(faceDetector.interactions, [
-            "setResultHandler(detectionResultHandler:) (FaceLivenessDetectionViewModel)"
-        ])
+        return DetectedFace(boundingBox: boundingBox, leftEye: leftEye, rightEye: rightEye, nose: nose, mouth: mouth, rightEar: rightEar, leftEar: leftEar, confidence: 0.971859633)
     }
     
     /// Given:  A `FaceLivenessDetectionViewModel`
@@ -218,16 +262,58 @@ final class FaceLivenessDetectionViewModelTestCase: XCTestCase {
     }
 
     /// Given:  A `FaceLivenessDetectionViewModel` showing the freshness (color) flash
-    /// When: The viewModel processes a `.noFace` result
-    /// Then: It falls back to oval matching so a returning face can re-match and restart freshness
-    func testNoFaceDuringFreshnessFallsBackToOvalMatch() async throws {
+    /// When: The face detector loses the face
+    /// Then: The colors carry on: the check stays in freshness and the oval-fit timer doesn't start
+    func testNoFaceDuringFreshnessDoesNotInterruptTheColors() async throws {
         viewModel.livenessService = self.livenessService
         viewModel.livenessState = .init(state: .displayingFreshness)
 
         viewModel.process(newResult: .noFace)
         try await Task.sleep(seconds: 1)
 
-        XCTAssertEqual(viewModel.livenessState.state, .awaitingFaceInOvalMatch(.noFace, 0))
+        XCTAssertEqual(viewModel.livenessState.state, .displayingFreshness)
+        XCTAssertNil(viewModel.noFitStartTime)
+    }
+
+    /// Given:  A face loss detected just before the face matched, whose update reaches the main
+    ///         thread once the colors have started
+    /// When: The update is applied
+    /// Then: The colors carry on rather than the check going back to oval matching
+    func testLateFaceLossDuringFreshnessDoesNotInterruptTheColors() {
+        var stateMachine = LivenessStateMachine(state: .displayingFreshness)
+
+        stateMachine.faceNotMatched(reason: .noFace)
+
+        XCTAssertEqual(stateMachine.state, .displayingFreshness)
+    }
+
+    /// Given:  A `FaceLivenessDetectionViewModel` whose face has just matched the oval, holding
+    ///         for a second before the colors
+    /// When: The face detector loses the face
+    /// Then: The check carries on to the colors
+    func testNoFaceWhileHoldingAfterTheMatchIsIgnored() async throws {
+        viewModel.livenessService = self.livenessService
+        viewModel.livenessState = .init(state: .faceMatched)
+
+        viewModel.process(newResult: .noFace)
+        try await Task.sleep(seconds: 1)
+
+        XCTAssertEqual(viewModel.livenessState.state, .faceMatched)
+        XCTAssertNil(viewModel.noFitStartTime)
+    }
+
+    /// Given:  A `FaceLivenessDetectionViewModel` showing the freshness (color) flash
+    /// When: The face detector reports more than one face
+    /// Then: The colors carry on, and the service judges the video
+    func testMultipleFacesDuringFreshnessDoesNotInterruptTheColors() async throws {
+        viewModel.livenessService = self.livenessService
+        viewModel.livenessState = .init(state: .displayingFreshness)
+
+        viewModel.process(newResult: .multipleFaces)
+        try await Task.sleep(seconds: 1)
+
+        XCTAssertEqual(viewModel.livenessState.state, .displayingFreshness)
+        XCTAssertNil(viewModel.noFitStartTime)
     }
 
     /// Given:  A `FaceLivenessDetectionViewModel` with the oval displayed

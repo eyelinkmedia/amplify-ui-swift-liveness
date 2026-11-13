@@ -87,15 +87,15 @@ final class _LivenessViewController: UIViewController {
             face.normalize(width: cameraSize.width, height: cameraSize.height)
         }
 
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            self.view.layer.insertSublayer(avLayer, at: 0)
-            self.view.layoutIfNeeded()
-            // Continues the oval of the get-ready screen until the challenge oval replaces it
-            self.addOvalView(ovalFrame: OvalGeometry.startOvalFrame(previewSize: avLayer.bounds.size))
+        // now rather than on the next pass of the main queue, so the check's first frame already
+        // shows the camera and the oval: the get ready screen is gone by then, and the frame in
+        // between was black
+        self.view.layer.insertSublayer(avLayer, at: 0)
+        self.view.layoutIfNeeded()
+        // Continues the oval of the get-ready screen until the challenge oval replaces it
+        self.addOvalView(ovalFrame: OvalGeometry.startOvalFrame(previewSize: avLayer.bounds.size))
 
-            self.viewModel.startSession()
-        }
+        self.viewModel.startSession()
     }
 
     var runningFreshness = false
@@ -116,6 +116,7 @@ final class _LivenessViewController: UIViewController {
 
 extension _LivenessViewController: FaceLivenessViewControllerPresenter {
     func displaySingleFrame(uiImage: UIImage) {
+        let uiImage = Self.rendered(uiImage)
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             guard let previewLayer = self.previewLayer else { return }
@@ -124,10 +125,22 @@ extension _LivenessViewController: FaceLivenessViewControllerPresenter {
             imageView.contentMode = .scaleAspectFill
             imageView.clipsToBounds = true
             self.view.addSubview(imageView)
-            (previewLayer as? AVCaptureVideoPreviewLayer)?.session = nil
             previewLayer.removeFromSuperlayer()
+            // on screen before the camera stops: detaching the preview from the running camera,
+            // then stopping it, left the screen black until both were done
+            CATransaction.flush()
             self.viewModel.stopRecording()
+            (previewLayer as? AVCaptureVideoPreviewLayer)?.session = nil
         }
+    }
+
+    /// Draws the frame now, on the camera's queue, so it shows as soon as it's on screen rather
+    /// than being drawn from its `CIImage` then
+    private nonisolated static func rendered(_ image: UIImage) -> UIImage {
+        guard let ciImage = image.ciImage,
+              let cgImage = CIContext().createCGImage(ciImage, from: ciImage.extent)
+        else { return image }
+        return UIImage(cgImage: cgImage)
     }
 
     func displayFreshness(colorSequences: [FaceLivenessSession.DisplayColor]) {
@@ -150,17 +163,6 @@ extension _LivenessViewController: FaceLivenessViewControllerPresenter {
                 self.viewModel.handleFreshnessComplete()
             }
         )
-    }
-
-    func stopFreshness() {
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            self.freshness.cancel()
-            // Clear the colors but leave the view in the hierarchy so that, if the face
-            // returns and re-matches, `displayFreshness(colorSequences:)` can restart the
-            // flash on the same view.
-            self.freshnessView.clearColors()
-        }
     }
 
     func drawOvalInCanvas(_ ovalRect: CGRect) {
