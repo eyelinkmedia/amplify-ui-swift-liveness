@@ -28,7 +28,7 @@ struct InstructionView: View {
                     .frame(height: 32)
                     .accessibilityHidden(true)
             }
-            Text(appearance.displayText(text))
+            Text(text)
                 .foregroundColor(.white)
                 .font(titleFont)
                 .multilineTextAlignment(.center)
