@@ -9,6 +9,7 @@ import SwiftUI
 
 struct CloseButton: View {
     let action: () -> Void
+    @Environment(\.livenessStrings) private var strings
 
     var body: some View {
         Button(
@@ -32,7 +33,7 @@ struct CloseButton: View {
         Image(systemName: "xmark")
             .font(.system(size: 18, weight: .bold))
             .frame(width: 44, height: 44)
-            .accessibilityLabel(Text(LocalizedStrings.close_button_a11y))
+            .accessibilityLabel(Text(strings[.close]))
     }
 }
 

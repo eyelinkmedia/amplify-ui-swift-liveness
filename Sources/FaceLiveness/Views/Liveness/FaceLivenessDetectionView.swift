@@ -29,6 +29,7 @@ public struct FaceLivenessDetectorView: View {
     let disableStartView: Bool
     let challengeOptions: ChallengeOptions
     let instructionAppearance: LivenessInstructionAppearance
+    let strings: LivenessStrings
     let onCompletion: (Result<Void, FaceLivenessDetectionError>) -> Void
 
     let sessionTask: Task<FaceLivenessSession, Error>
@@ -40,14 +41,16 @@ public struct FaceLivenessDetectorView: View {
         disableStartView: Bool = false,
         challengeOptions: ChallengeOptions = .init(),
         instructionAppearance: LivenessInstructionAppearance = .init(),
+        strings: @escaping (FaceLivenessStringName) -> String = { $0.defaultValue },
         isPresented: Binding<Bool>,
         onCompletion: @escaping (Result<Void, FaceLivenessDetectionError>) -> Void
-    ) {        
+    ) {
         self.disableStartView = disableStartView
         self._isPresented = isPresented
         self.onCompletion = onCompletion
         self.challengeOptions = challengeOptions
         self.instructionAppearance = instructionAppearance
+        self.strings = LivenessStrings(strings)
 
         self.sessionTask = Task {
             let session = try await AWSPredictionsPlugin.startFaceLivenessSession(
@@ -96,6 +99,7 @@ public struct FaceLivenessDetectorView: View {
         self.onCompletion = onCompletion
         self.challengeOptions = challengeOptions
         self.instructionAppearance = .init()
+        self.strings = .english
 
         self.sessionTask = Task {
             let session = try await AWSPredictionsPlugin.startFaceLivenessSession(
@@ -125,6 +129,7 @@ public struct FaceLivenessDetectorView: View {
     public var body: some View {
         content
             .environment(\.livenessInstructionAppearance, instructionAppearance)
+            .environment(\.livenessStrings, strings)
             .onDisappear {
                 restoreScreen()
                 // the get ready screen leaves the camera running for the check, so stop it here

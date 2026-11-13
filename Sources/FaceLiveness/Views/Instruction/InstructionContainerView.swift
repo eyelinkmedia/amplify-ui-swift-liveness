@@ -11,74 +11,75 @@ import Combine
 
 struct InstructionContainerView: View {
     @ObservedObject var viewModel: FaceLivenessDetectionViewModel
+    @Environment(\.livenessStrings) private var strings
 
     var body: some View {
         switch viewModel.livenessState.state {
         case .displayingFreshness:
             InstructionView(
                 icon: .moveCloser,
-                text: LocalizedStrings.challenge_instruction_hold_still
+                text: strings[.holdStill]
             )
             .onAppear {
                 UIAccessibility.post(
                     notification: .announcement,
-                    argument: LocalizedStrings.challenge_instruction_hold_still
+                    argument: strings[.holdStill]
                 )
             }
 
         case .awaitingFaceInOvalMatch(.faceTooClose, _):
             InstructionView(
                 icon: .moveCloser,
-                text: LocalizedStrings.challenge_instruction_move_face_back
+                text: strings[.moveBack]
             )
             .onAppear {
                 UIAccessibility.post(
                     notification: .announcement,
-                    argument: LocalizedStrings.challenge_instruction_move_face_back
+                    argument: strings[.moveBack]
                 )
             }
 
         case .awaitingFaceInOvalMatch(let reason, _):
             InstructionView(
                 icon: .moveCloser,
-                text: .init(reason.localizedValue)
+                text: reason.localizedValue(using: strings)
             )
         case .recording(ovalDisplayed: true):
             InstructionView(
                 icon: .moveCloser,
-                text: LocalizedStrings.challenge_instruction_move_face_closer
+                text: strings[.moveCloser]
             )
             .onAppear {
                 UIAccessibility.post(
                     notification: .announcement,
-                    argument: LocalizedStrings.challenge_instruction_move_face_closer
+                    argument: strings[.moveCloser]
                 )
             }
         case .pendingFacePreparedConfirmation(let reason):
             InstructionView(
                 icon: .centerYourFace,
-                text: .init(reason.localizedValue)
+                text: reason.localizedValue(using: strings)
             )
         case .completedDisplayingFreshness:
             InstructionView(
                 icon: .verifying,
-                text: LocalizedStrings.challenge_verifying
+                text: strings[.verifying]
             )
             .onAppear {
                 UIAccessibility.post(
                     notification: .announcement,
-                    argument: LocalizedStrings.challenge_verifying
+                    argument: strings[.verifying]
                 )
             }
         case .completedNoLightCheck:
             InstructionView(
                 icon: .verifying,
-                text: LocalizedStrings.challenge_verifying
+                text: strings[.verifying]
             )
             .onAppear {
                 UIAccessibility.post(
                     notification: .announcement,
-                    argument: LocalizedStrings.challenge_verifying
+                    argument: strings[.verifying]
                 )
             }
         case .faceMatched:
@@ -86,7 +87,7 @@ struct InstructionContainerView: View {
                case .faceMovementAndLightChallenge = challenge {
                 InstructionView(
                     icon: .moveCloser,
-                    text: LocalizedStrings.challenge_instruction_hold_still
+                    text: strings[.holdStill]
                 )
             } else {
                 EmptyView()
