@@ -11,6 +11,7 @@ struct CameraPermissionView: View {
     @Binding var displayingCameraPermissionsNeededAlert: Bool
     let onClose: () -> Void
     @Environment(\.livenessInstructionAppearance) private var appearance
+    @Environment(\.livenessStrings) private var strings
 
     init(
         displayingCameraPermissionsNeededAlert: Binding<Bool> = .constant(false),
@@ -28,14 +29,14 @@ struct CameraPermissionView: View {
             VStack(alignment: .center) {
                 Spacer()
                 VStack {
-                    Text(appearance.displayText(LocalizedStrings.camera_permission_change_setting_header))
+                    Text(appearance.displayText(strings[.cameraPermissionHeader]))
                         .font(.title2)
                         .fontWeight(.medium)
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                         .padding(8)
 
-                    Text(appearance.displayText(LocalizedStrings.camera_permission_change_setting_description))
+                    Text(appearance.displayText(strings[.cameraPermissionDescription]))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                         .padding(8)
@@ -47,15 +48,15 @@ struct CameraPermissionView: View {
         .closeButtonOverlay(action: onClose)
         .alert(isPresented: $displayingCameraPermissionsNeededAlert) {
             Alert(
-                title: Text(appearance.displayText(LocalizedStrings.camera_setting_alert_title)),
-                message: Text(appearance.displayText(LocalizedStrings.camera_setting_alert_message)),
+                title: Text(appearance.displayText(strings[.cameraPermissionAlertTitle])),
+                message: Text(appearance.displayText(strings[.cameraPermissionAlertMessage])),
                 primaryButton: .default(
-                    Text(appearance.displayText(LocalizedStrings.camera_setting_alert_update_setting_button_text)).bold(),
+                    Text(appearance.displayText(strings[.cameraPermissionAlertUpdate])).bold(),
                     action: {
                         goToSettingsAppPage()
                     }),
                 secondaryButton: .default(
-                    Text(appearance.displayText(LocalizedStrings.camera_setting_alert_not_now_button_text))
+                    Text(appearance.displayText(strings[.cameraPermissionAlertNotNow]))
                 )
             )
         }
@@ -69,7 +70,7 @@ struct CameraPermissionView: View {
 
     private var editPermissionButton: some View {
         PrimaryButton(
-            title: LocalizedStrings.camera_permission_change_setting_button_title,
+            title: strings[.cameraPermissionButton],
             action: goToSettingsAppPage
         )
     }

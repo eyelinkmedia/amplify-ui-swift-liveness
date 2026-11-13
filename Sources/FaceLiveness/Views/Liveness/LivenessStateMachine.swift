@@ -144,28 +144,29 @@ struct LivenessStateMachine {
         case multipleFaces
         case faceTooClose
         
-        var localizedValue: String {
+        func localizedValue(using strings: LivenessStrings) -> String {
             switch self {
             case .pendingCheck:
-                return LocalizedStrings.amplify_ui_liveness_face_not_prepared_reason_pendingCheck
+                // Keeps the instruction's height while there is nothing to say yet
+                return " "
             case .notInOval:
-                return LocalizedStrings.amplify_ui_liveness_face_not_prepared_reason_not_in_oval
+                return strings[.fitInOval]
             case .moveFaceCloser:
-                return LocalizedStrings.amplify_ui_liveness_face_not_prepared_reason_move_face_closer
+                return strings[.moveCloser]
             case .moveFaceRight:
-                return LocalizedStrings.amplify_ui_liveness_face_not_prepared_reason_move_face_right
+                return strings[.moveRight]
             case .moveFaceLeft:
-                return LocalizedStrings.amplify_ui_liveness_face_not_prepared_reason_move_face_left
+                return strings[.moveLeft]
             case .moveToDimmerArea:
-                return LocalizedStrings.amplify_ui_liveness_face_not_prepared_reason_move_to_dimmer_area
+                return strings[.moveToDimmerArea]
             case .moveToBrighterArea:
-                return LocalizedStrings.amplify_ui_liveness_face_not_prepared_reason_move_to_brighter_area
+                return strings[.moveToBrighterArea]
             case .noFace:
-                return LocalizedStrings.amplify_ui_liveness_face_not_prepared_reason_no_face
+                return strings[.noFace]
             case .multipleFaces:
-                return LocalizedStrings.challenge_instruction_multiple_faces_detected
+                return strings[.oneFaceOnly]
             case .faceTooClose:
-                return LocalizedStrings.amplify_ui_liveness_face_not_prepared_reason_face_too_close
+                return strings[.tooClose]
             }
         }
     }

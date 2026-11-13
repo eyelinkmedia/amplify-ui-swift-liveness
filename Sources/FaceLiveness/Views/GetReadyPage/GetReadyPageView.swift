@@ -13,6 +13,7 @@ struct GetReadyPageView: View {
     let onClose: () -> Void
     let cameraPosition: LivenessCamera
     let sharedCaptureSession: LivenessCaptureSession?
+    @Environment(\.livenessStrings) private var strings
 
     init(
         onBegin: @escaping () -> Void,
@@ -36,7 +37,7 @@ struct GetReadyPageView: View {
             VStack {
                 InstructionView(
                     icon: .centerYourFace,
-                    text: LocalizedStrings.preview_center_your_face_text
+                    text: strings[.centerFace]
                 )
                 .padding(.top, 22)
                 Spacer()
@@ -48,7 +49,7 @@ struct GetReadyPageView: View {
 
     private var beginCheckButton: some View {
         PrimaryButton(
-            title: LocalizedStrings.get_ready_begin_check,
+            title: strings[.startCheck],
             action: onBegin
         )
         .disabled(beginCheckButtonDisabled)

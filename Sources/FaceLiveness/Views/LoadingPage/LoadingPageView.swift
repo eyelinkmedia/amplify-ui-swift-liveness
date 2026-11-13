@@ -9,12 +9,13 @@ import SwiftUI
 
 struct LoadingPageView: View {
     @Environment(\.livenessInstructionAppearance) private var appearance
+    @Environment(\.livenessStrings) private var strings
 
     var body: some View {
         VStack {
             HStack(spacing: 5) {
                 ProgressView()
-                Text(appearance.displayText(LocalizedStrings.challenge_connecting))
+                Text(appearance.displayText(strings[.connecting]))
             }
             
         }
