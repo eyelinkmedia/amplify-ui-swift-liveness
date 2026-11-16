@@ -33,7 +33,6 @@ final class _LivenessViewController: UIViewController {
     deinit {
         guard let previewLayer = self.previewLayer else { return }
         previewLayer.removeFromSuperlayer()
-        (previewLayer as? AVCaptureVideoPreviewLayer)?.session = nil
         self.previewLayer = nil
     }
 
@@ -126,11 +125,11 @@ extension _LivenessViewController: FaceLivenessViewControllerPresenter {
             imageView.clipsToBounds = true
             self.view.addSubview(imageView)
             previewLayer.removeFromSuperlayer()
-            // on screen before the camera stops: detaching the preview from the running camera,
-            // then stopping it, left the screen black until both were done
+            // on screen now, so the final frame doesn't wait on anything that comes after it:
+            // the camera used to stop here, on the main thread, and left the screen black until
+            // it was done
             CATransaction.flush()
             self.viewModel.stopRecording()
-            (previewLayer as? AVCaptureVideoPreviewLayer)?.session = nil
         }
     }
 
