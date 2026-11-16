@@ -11,6 +11,9 @@ import CoreImage
 class OutputSampleBufferCapturer: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     let faceDetector: FaceDetector
     let videoChunker: VideoChunker
+    /// Set while the get ready screen shows this session's camera through its preview layer;
+    /// the frames are dropped until the check takes over the session.
+    let isPreviewing = Synchronized(false)
 
     init(faceDetector: FaceDetector, videoChunker: VideoChunker) {
         self.faceDetector = faceDetector
@@ -22,6 +25,12 @@ class OutputSampleBufferCapturer: NSObject, AVCaptureVideoDataOutputSampleBuffer
         didOutput sampleBuffer: CMSampleBuffer,
         from connection: AVCaptureConnection
     ) {
+        handle(sampleBuffer)
+    }
+
+    func handle(_ sampleBuffer: CMSampleBuffer) {
+        guard !isPreviewing.value else { return }
+
         videoChunker.consume(sampleBuffer)
 
         guard let imageBuffer = sampleBuffer.imageBuffer
