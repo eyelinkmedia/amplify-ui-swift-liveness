@@ -11,13 +11,12 @@ import SwiftUI
 struct PrimaryButton: View {
     let title: String
     let action: () -> Void
-    @Environment(\.livenessInstructionAppearance) private var appearance
 
     var body: some View {
         Button(
             action: action,
             label: {
-                Text(appearance.displayText(title))
+                Text(title)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
